@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在线证件照换底色工具</title>
+    <title>换底色 - 在线证件照换底色工具</title>
+    <meta name="description" content="免费在线证件照换底色工具，支持白底、蓝底、红底等多种颜色，纯前端处理，图片不上传服务器，安全快速。">
+    <meta name="keywords" content="证件照,换底色,在线工具,免费,白底,蓝底,红底">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎨</text></svg>">
+
     <style>
         * {
             margin: 0;
@@ -27,12 +33,90 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
 
-        h1 {
+        .header {
             text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .header h1 {
             color: #2c3e50;
-            margin-bottom: 20px;
-            font-size: 28px;
+            margin-bottom: 10px;
+            font-size: 36px;
             font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header h1 .icon {
+            font-size: 42px;
+        }
+
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 16px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .github-link {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #24292e;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .github-link:hover {
+            background: #2c3e50;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .github-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer .tech-stack {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #95a5a6;
+        }
+
+        .footer .tech-stack span {
+            margin: 0 8px;
         }
 
         .main-content {
@@ -315,12 +399,54 @@
             .result-images-grid {
                 grid-template-columns: 1fr;
             }
+
+            .header h1 {
+                font-size: 28px;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .header h1 .icon {
+                font-size: 36px;
+            }
+
+            .header .subtitle {
+                font-size: 14px;
+            }
+
+            .github-link {
+                position: static;
+                display: inline-flex;
+                margin-top: 10px;
+                font-size: 13px;
+                padding: 8px 16px;
+            }
+
+            .github-icon {
+                width: 18px;
+                height: 18px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>在线证件照换底色工具</h1>
+        <div class="header">
+            <a href="https://github.com/jackyrwj/photo" target="_blank" rel="noopener noreferrer" class="github-link">
+                <svg class="github-icon" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+                GitHub
+            </a>
+            <h1>
+                <span class="icon">🎨</span>
+                <span>换底色</span>
+            </h1>
+            <p class="subtitle">
+                免费在线证件照换底色工具 · 纯前端处理 · 图片不上传服务器 · 安全快速<br>
+                支持白底、蓝底、红底等多种颜色，一键生成标准证件照
+            </p>
+        </div>
 
         <div class="main-content">
             <!-- 左侧：效果展示 -->
@@ -411,6 +537,23 @@
         <div class="tips" style="margin-top: 40px; padding: 20px; background: #fff3cd; border-radius: 10px; border-left: 4px solid #ffc107;">
             <p style="font-weight: 600; color: #856404; margin-bottom: 10px;">💡 纯前端版本 - 所有处理在浏览器本地完成，图片不会上传到服务器！</p>
             <p style="color: #856404; line-height: 1.6;">请使用背景整洁的正装证件照，效果最佳。支持 JPG、PNG 格式。</p>
+        </div>
+
+        <div class="footer">
+            <p>
+                ❤️ 开源项目 ·
+                <a href="https://github.com/jackyrwj/photo" target="_blank" rel="noopener noreferrer">GitHub</a> ·
+                免费使用 · 欢迎 Star ⭐
+            </p>
+            <div class="tech-stack">
+                <span>HTML5</span>·
+                <span>Canvas API</span>·
+                <span>纯前端处理</span>·
+                <span>隐私安全</span>
+            </div>
+            <p style="margin-top: 10px; font-size: 12px;">
+                © 2025 换底色 · Made with 🎨 by <a href="https://github.com/jackyrwj" target="_blank">jackyrwj</a>
+            </p>
         </div>
     </div>
 

@@ -20,74 +20,224 @@ body {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
-h1 {
+.header {
     text-align: center;
-    color: #2c3e50;
     margin-bottom: 30px;
-    font-size: 28px;
-    font-weight: 700;
+    position: relative;
 }
 
-/* 示例效果展示 */
-.demo-section {
+.header h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    font-size: 36px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.header h1 .icon {
+    font-size: 42px;
+}
+
+.header .subtitle {
+    color: #7f8c8d;
+    font-size: 16px;
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+.github-link {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #24292e;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.github-link:hover {
+    background: #2c3e50;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.github-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.footer {
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 2px solid #e0e0e0;
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.footer a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.footer a:hover {
+    text-decoration: underline;
+}
+
+.footer .tech-stack {
+    margin-top: 15px;
+    font-size: 13px;
+    color: #95a5a6;
+}
+
+.footer .tech-stack span {
+    margin: 0 8px;
+}
+
+/* 主要内容区域 - 左右分栏 */
+.main-content {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 30px;
     margin-bottom: 40px;
-    padding: 30px;
+}
+
+/* 左侧：示例效果展示 */
+.demo-section {
+    padding: 20px;
     background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
     border-radius: 15px;
     border: 1px solid #e0e0e0;
+    height: fit-content;
 }
 
 .demo-section h2 {
     text-align: center;
     color: #2c3e50;
-    margin-bottom: 20px;
-    font-size: 20px;
+    margin-bottom: 15px;
+    font-size: 18px;
     font-weight: 600;
 }
 
 .demo-images {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 140px 60px 140px;
+    align-items: center;
+    gap: 10px;
+}
+
+.demo-original {
+    text-align: center;
+    background: white;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.demo-original img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.demo-original p {
+    color: #555;
+    font-weight: 500;
+    font-size: 13px;
+    margin: 0;
+}
+
+/* 箭头容器 */
+.demo-arrows {
+    display: flex;
+    flex-direction: column;
     gap: 20px;
-    max-width: 800px;
-    margin: 0 auto;
+    justify-content: center;
+}
+
+.arrow-container {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.arrow-line {
+    width: 40px;
+    height: 2px;
+    background: #3498db;
+}
+
+.arrow-head {
+    width: 0;
+    height: 0;
+    border-left: 8px solid #3498db;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+}
+
+/* 结果图片 */
+.demo-results {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 .demo-item {
     text-align: center;
     background: white;
-    padding: 15px;
-    border-radius: 10px;
+    padding: 8px;
+    border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease;
 }
 
 .demo-item:hover {
-    transform: translateY(-5px);
+    transform: translateX(5px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .demo-item img {
     width: 100%;
     height: auto;
-    border-radius: 8px;
-    margin-bottom: 10px;
+    border-radius: 6px;
+    margin-bottom: 5px;
 }
 
 .demo-item p {
     color: #555;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 12px;
+    margin: 0;
+}
+
+/* 右侧：功能区 */
+.function-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .upload-section {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .upload-area {
     border: 3px dashed #ccc;
     border-radius: 10px;
-    padding: 60px 20px;
+    padding: 40px 20px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -111,7 +261,7 @@ h1 {
 }
 
 .color-section {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     padding: 20px;
     background: #f9f9f9;
     border-radius: 10px;
@@ -368,6 +518,20 @@ h1 {
     font-size: 18px;
 }
 
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+
+    .demo-section {
+        margin-bottom: 20px;
+    }
+
+    .demo-images {
+        grid-template-columns: 120px 50px 120px;
+    }
+}
+
 @media (max-width: 768px) {
     .result-images, .result-images-grid {
         grid-template-columns: 1fr;
@@ -375,6 +539,16 @@ h1 {
 
     .demo-images {
         grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .demo-arrows {
+        display: none;
+    }
+
+    .demo-results {
+        flex-direction: row;
+        gap: 10px;
     }
 
     .preset-colors {
@@ -383,6 +557,33 @@ h1 {
 
     .container {
         padding: 20px;
+    }
+
+    .header h1 {
+        font-size: 28px;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .header h1 .icon {
+        font-size: 36px;
+    }
+
+    .header .subtitle {
+        font-size: 14px;
+    }
+
+    .github-link {
+        position: static;
+        display: inline-flex;
+        margin-top: 10px;
+        font-size: 13px;
+        padding: 8px 16px;
+    }
+
+    .github-icon {
+        width: 18px;
+        height: 18px;
     }
 }
 

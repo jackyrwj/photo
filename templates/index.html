@@ -3,65 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在线证件照换底色工具</title>
+    <title>换底色 - 在线证件照换底色工具</title>
+    <meta name="description" content="免费在线证件照换底色工具，支持白底、蓝底、红底等多种颜色，智能抠图，效果专业。">
+    <meta name="keywords" content="证件照,换底色,在线工具,免费,白底,蓝底,红底">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎨</text></svg>">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>在线证件照换底色工具</h1>
-
-        <!-- 示例效果展示 -->
-        <div class="demo-section">
-            <h2>效果展示</h2>
-            <div class="demo-images">
-                <div class="demo-item">
-                    <img src="/static/demo/image.jpg" alt="原图">
-                    <p>原图</p>
-                </div>
-                <div class="demo-item">
-                    <img src="/static/demo/red.jpg" alt="红底">
-                    <p>红底效果</p>
-                </div>
-                <div class="demo-item">
-                    <img src="/static/demo/white.jpg" alt="白底">
-                    <p>白底效果</p>
-                </div>
-            </div>
+        <div class="header">
+            <a href="https://github.com/jackyrwj/photo" target="_blank" rel="noopener noreferrer" class="github-link">
+                <svg class="github-icon" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+                GitHub
+            </a>
+            <h1>
+                <span class="icon">🎨</span>
+                <span>换底色</span>
+            </h1>
+            <p class="subtitle">
+                免费在线证件照换底色工具 · 智能抠图 · 效果专业<br>
+                支持白底、蓝底、红底等多种颜色，一键生成标准证件照
+            </p>
         </div>
 
-        <div class="upload-section">
-            <div class="upload-area" id="uploadArea">
-                <input type="file" id="fileInput" accept="image/*" style="display: none;">
-                <div class="upload-text">
-                    <p>将证件照拖入此处或点击上传</p>
+        <!-- 主要内容区域：左侧效果展示，右侧功能区 -->
+        <div class="main-content">
+            <!-- 左侧：效果展示 -->
+            <div class="demo-section">
+                <h2>效果展示</h2>
+                <div class="demo-images">
+                    <div class="demo-original">
+                        <img src="/static/demo/image.jpg" alt="原图">
+                        <p>原图</p>
+                    </div>
+                    <div class="demo-arrows">
+                        <div class="arrow-container">
+                            <div class="arrow-line"></div>
+                            <div class="arrow-head"></div>
+                        </div>
+                        <div class="arrow-container">
+                            <div class="arrow-line"></div>
+                            <div class="arrow-head"></div>
+                        </div>
+                    </div>
+                    <div class="demo-results">
+                        <div class="demo-item">
+                            <img src="/static/demo/red.jpg" alt="红底">
+                            <p>红底</p>
+                        </div>
+                        <div class="demo-item">
+                            <img src="/static/demo/white.jpg" alt="白底">
+                            <p>白底</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="color-section">
-            <div class="color-label">
-                <span>照片底色：</span>
-                <span class="color-display" id="colorDisplay">#ff0000</span>
-            </div>
-            <span class="color-label-sub">常见底色（点击直接选，白/蓝/红自动预览）：</span>
-            <div class="preset-colors">
-                <div class="color-box auto-preview" data-color="#ffffff" style="background-color: #ffffff; border: 2px solid #ddd;" title="白色"></div>
-                <div class="color-box auto-preview" data-color="#2196F3" style="background-color: #2196F3;" title="蓝色"></div>
-                <div class="color-box auto-preview" data-color="#ff0000" style="background-color: #ff0000;" title="红色"></div>
-                <div class="color-box" data-color="#d32f2f" style="background-color: #d32f2f;" title="深红色"></div>
-                <div class="color-box" data-color="#808080" style="background-color: #808080;" title="灰色"></div>
-                <div class="color-box" data-color="#87CEEB" style="background-color: #87CEEB;" title="浅蓝色"></div>
-                <div class="color-box" data-color="#4169E1" style="background-color: #4169E1;" title="深蓝色"></div>
-                <div class="color-box" data-color="#8B0000" style="background-color: #8B0000;" title="暗红色"></div>
-            </div>
-            <div class="custom-color">
-                <label for="colorPicker">自定义颜色：</label>
-                <input type="color" id="colorPicker" value="#ff0000">
-            </div>
-        </div>
+            <!-- 右侧：功能区 -->
+            <div class="function-section">
+                <div class="upload-section">
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                        <div class="upload-text">
+                            <p>将证件照拖入此处或点击上传</p>
+                        </div>
+                    </div>
+                </div>
 
-        <div class="action-section">
-            <button id="processBtn" class="btn-primary" disabled>开始处理</button>
+                <div class="color-section">
+                    <div class="color-label">
+                        <span>照片底色：</span>
+                        <span class="color-display" id="colorDisplay">#ff0000</span>
+                    </div>
+                    <span class="color-label-sub">常见底色（点击直接选，白/蓝/红自动预览）：</span>
+                    <div class="preset-colors">
+                        <div class="color-box auto-preview" data-color="#ffffff" style="background-color: #ffffff; border: 2px solid #ddd;" title="白色"></div>
+                        <div class="color-box auto-preview" data-color="#2196F3" style="background-color: #2196F3;" title="蓝色"></div>
+                        <div class="color-box auto-preview" data-color="#ff0000" style="background-color: #ff0000;" title="红色"></div>
+                        <div class="color-box" data-color="#d32f2f" style="background-color: #d32f2f;" title="深红色"></div>
+                        <div class="color-box" data-color="#808080" style="background-color: #808080;" title="灰色"></div>
+                        <div class="color-box" data-color="#87CEEB" style="background-color: #87CEEB;" title="浅蓝色"></div>
+                        <div class="color-box" data-color="#4169E1" style="background-color: #4169E1;" title="深蓝色"></div>
+                        <div class="color-box" data-color="#8B0000" style="background-color: #8B0000;" title="暗红色"></div>
+                    </div>
+                    <div class="custom-color">
+                        <label for="colorPicker">自定义颜色：</label>
+                        <input type="color" id="colorPicker" value="#ff0000">
+                    </div>
+                </div>
+
+                <div class="action-section">
+                    <button id="processBtn" class="btn-primary" disabled>开始处理</button>
+                </div>
+            </div>
         </div>
 
         <div class="result-section" id="resultSection" style="display: none;">
@@ -115,6 +154,23 @@
             <p>证件照在线换底色工具支持一键智能证件照背景色，一键智能抠图换底，智能方便。提供已抠版PNG图像下载，方便自行合成底。</p>
             <p>请直接将现有证件照拖入上图像区中，工具将会自动为您智能抠图替换底色，您可以自行切换任意背景色。</p>
             <p><strong>如点击图像或下载按钮无法自动下载，请右击键或长按证件照像保存即可。</strong></p>
+        </div>
+
+        <div class="footer">
+            <p>
+                ❤️ 开源项目 ·
+                <a href="https://github.com/jackyrwj/photo" target="_blank" rel="noopener noreferrer">GitHub</a> ·
+                免费使用 · 欢迎 Star ⭐
+            </p>
+            <div class="tech-stack">
+                <span>Python</span>·
+                <span>Flask</span>·
+                <span>OpenCV</span>·
+                <span>智能抠图</span>
+            </div>
+            <p style="margin-top: 10px; font-size: 12px;">
+                © 2025 换底色 · Made with 🎨 by <a href="https://github.com/jackyrwj" target="_blank">jackyrwj</a>
+            </p>
         </div>
 
         <div class="loading" id="loading" style="display: none;">
