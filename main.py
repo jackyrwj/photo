@@ -43,7 +43,7 @@ def change_color(image_path='./myimage.jpg', output_path='.'):
       mask = cv.GaussianBlur(mask, (5, 5), 0)
 
       # 白色背景[255, 255, 255]
-      bg_w = np.ones(image.shape, dtype=np.float) * 255
+      bg_w = np.ones(image.shape, dtype=np.float64) * 255
 
       # 红色背景 注意：opencv中的像素三通道的排列顺序为BGR，而非RGB。所以红色为[0, 0, 255]， 蓝色为[255, 0, 0]
       red = np.array([0, 0, 255])

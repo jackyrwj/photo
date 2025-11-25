@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线证件照换底色工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>在线证件照换底色工具</h1>
+
+        <!-- 示例效果展示 -->
+        <div class="demo-section">
+            <h2>效果展示</h2>
+            <div class="demo-images">
+                <div class="demo-item">
+                    <img src="/static/demo/image.jpg" alt="原图">
+                    <p>原图</p>
+                </div>
+                <div class="demo-item">
+                    <img src="/static/demo/red.jpg" alt="红底">
+                    <p>红底效果</p>
+                </div>
+                <div class="demo-item">
+                    <img src="/static/demo/white.jpg" alt="白底">
+                    <p>白底效果</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                <div class="upload-text">
+                    <p>将证件照拖入此处或点击上传</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="color-section">
+            <div class="color-label">
+                <span>照片底色：</span>
+                <span class="color-display" id="colorDisplay">#ff0000</span>
+            </div>
+            <span class="color-label-sub">常见底色（点击直接选，白/蓝/红自动预览）：</span>
+            <div class="preset-colors">
+                <div class="color-box auto-preview" data-color="#ffffff" style="background-color: #ffffff; border: 2px solid #ddd;" title="白色"></div>
+                <div class="color-box auto-preview" data-color="#2196F3" style="background-color: #2196F3;" title="蓝色"></div>
+                <div class="color-box auto-preview" data-color="#ff0000" style="background-color: #ff0000;" title="红色"></div>
+                <div class="color-box" data-color="#d32f2f" style="background-color: #d32f2f;" title="深红色"></div>
+                <div class="color-box" data-color="#808080" style="background-color: #808080;" title="灰色"></div>
+                <div class="color-box" data-color="#87CEEB" style="background-color: #87CEEB;" title="浅蓝色"></div>
+                <div class="color-box" data-color="#4169E1" style="background-color: #4169E1;" title="深蓝色"></div>
+                <div class="color-box" data-color="#8B0000" style="background-color: #8B0000;" title="暗红色"></div>
+            </div>
+            <div class="custom-color">
+                <label for="colorPicker">自定义颜色：</label>
+                <input type="color" id="colorPicker" value="#ff0000">
+            </div>
+        </div>
+
+        <div class="action-section">
+            <button id="processBtn" class="btn-primary" disabled>开始处理</button>
+        </div>
+
+        <div class="result-section" id="resultSection" style="display: none;">
+            <h2>处理结果</h2>
+            <div class="result-images-grid">
+                <div class="image-container">
+                    <h3>原图</h3>
+                    <img id="originalImage" alt="原图">
+                </div>
+                <div class="image-container">
+                    <h3>白底</h3>
+                    <img id="whiteImage" alt="白底" style="display: none;">
+                    <div class="loading-placeholder" id="whiteLoading">处理中...</div>
+                </div>
+                <div class="image-container">
+                    <h3>蓝底</h3>
+                    <img id="blueImage" alt="蓝底" style="display: none;">
+                    <div class="loading-placeholder" id="blueLoading">处理中...</div>
+                </div>
+                <div class="image-container">
+                    <h3>红底</h3>
+                    <img id="redImage" alt="红底" style="display: none;">
+                    <div class="loading-placeholder" id="redLoading">处理中...</div>
+                </div>
+            </div>
+            <div class="download-buttons">
+                <button class="btn-download" id="downloadWhite" style="display: none;">下载白底</button>
+                <button class="btn-download" id="downloadBlue" style="display: none;">下载蓝底</button>
+                <button class="btn-download" id="downloadRed" style="display: none;">下载红底</button>
+            </div>
+        </div>
+
+        <!-- 自定义颜色结果 -->
+        <div class="custom-result-section" id="customResultSection" style="display: none;">
+            <h2>自定义颜色结果</h2>
+            <div class="result-images">
+                <div class="image-container">
+                    <h3>原图</h3>
+                    <img id="customOriginalImage" alt="原图">
+                </div>
+                <div class="image-container">
+                    <h3>处理后</h3>
+                    <img id="customResultImage" alt="处理后">
+                </div>
+            </div>
+            <button id="downloadCustom" class="btn-success">下载图片</button>
+        </div>
+
+        <div class="tips">
+            <p class="tip-title">证件照限时免费中。AI智能一键制作证件照&换底色。更多格式可选。更智能快捷。欢迎免费试用。</p>
+            <p>证件照在线换底色工具支持一键智能证件照背景色，一键智能抠图换底，智能方便。提供已抠版PNG图像下载，方便自行合成底。</p>
+            <p>请直接将现有证件照拖入上图像区中，工具将会自动为您智能抠图替换底色，您可以自行切换任意背景色。</p>
+            <p><strong>如点击图像或下载按钮无法自动下载，请右击键或长按证件照像保存即可。</strong></p>
+        </div>
+
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>处理中，请稍候...</p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
+
