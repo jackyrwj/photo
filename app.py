@@ -134,6 +134,9 @@ def download_file(filename):
     return jsonify({'error': '文件不存在'}), 404
 
 
+# Vercel serverless function handler
+app_handler = app
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
 
