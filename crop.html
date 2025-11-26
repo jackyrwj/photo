@@ -375,7 +375,7 @@
       <div class="main-content">
         <!-- 左侧：画布区域 -->
         <div class="canvas-section">
-          <div class="canvas-wrapper" id="canvasWrapper" style="display: none">
+          <div class="canvas-wrapper" id="canvasWrapper">
             <canvas id="canvas"></canvas>
             <div class="crop-box" id="cropBox">
               <div class="resize-handle nw"></div>
@@ -383,9 +383,6 @@
               <div class="resize-handle sw"></div>
               <div class="resize-handle se"></div>
             </div>
-          </div>
-          <div id="placeholder" style="color: #999; text-align: center">
-            <p style="font-size: 18px">👈 请先上传图片</p>
           </div>
         </div>
 
@@ -507,12 +504,27 @@
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d");
       const canvasWrapper = document.getElementById("canvasWrapper");
-      const placeholder = document.getElementById("placeholder");
       const cropBoxEl = document.getElementById("cropBox");
       const generateBtn = document.getElementById("generateBtn");
       const resultSection = document.getElementById("resultSection");
       const resultImage = document.getElementById("resultImage");
       const downloadBtn = document.getElementById("downloadBtn");
+
+      // 页面加载时加载默认图片
+      window.addEventListener("load", () => {
+        loadDefaultImage();
+      });
+
+      // 加载默认图片
+      function loadDefaultImage() {
+        const img = new Image();
+        img.onload = () => {
+          uploadedImage = img;
+          displayImage();
+          generateBtn.disabled = false;
+        };
+        img.src = "./static/demo/image.jpg";
+      }
 
       // 上传区域点击事件
       uploadArea.addEventListener("click", () => fileInput.click());
@@ -550,10 +562,6 @@
 
         // 绘制图片
         ctx.drawImage(uploadedImage, 0, 0, canvas.width, canvas.height);
-
-        // 显示 canvas
-        placeholder.style.display = "none";
-        canvasWrapper.style.display = "inline-block";
 
         // 初始化裁剪框
         initCropBox();
