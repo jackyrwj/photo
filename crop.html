@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>证件照裁剪工具 - 换底色</title>
+    <meta
+      name="description"
+      content="免费在线证件照裁剪工具，支持一寸、二寸、三寸等多种尺寸，纯前端处理，图片不上传服务器，安全快速。"
+    />
+    <meta name="keywords" content="证件照,裁剪,在线工具,免费,一寸,二寸,三寸" />
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✂️</text></svg>"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      /* 导航栏样式 */
+      .navbar {
+        background: white;
+        border-radius: 15px;
+        padding: 15px 30px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        max-width: 1000px;
+        margin: 0 auto 20px;
+      }
+
+      .nav-link {
+        padding: 10px 25px;
+        text-decoration: none;
+        color: #555;
+        font-weight: 500;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .nav-link:hover {
+        background: #f0f0f0;
+        color: #2c3e50;
+      }
+
+      .nav-link.active {
+        background: #3498db;
+        color: white;
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+        font-size: 36px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      .header h1 .icon {
+        font-size: 42px;
+      }
+
+      .header .subtitle {
+        color: #7f8c8d;
+        font-size: 16px;
+        margin-bottom: 15px;
+        line-height: 1.6;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 30px;
+      }
+
+      .canvas-section {
+        background: #f9f9f9;
+        border-radius: 15px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 500px;
+        position: relative;
+      }
+
+      .canvas-wrapper {
+        position: relative;
+        display: inline-block;
+        background: #e0e0e0;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      #canvas {
+        display: block;
+        max-width: 100%;
+        cursor: move;
+      }
+
+      .crop-box {
+        position: absolute;
+        border: 2px solid #3498db;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        cursor: move;
+      }
+
+      .resize-handle {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: #3498db;
+        border: 2px solid white;
+        border-radius: 50%;
+      }
+
+      .resize-handle.nw {
+        top: -5px;
+        left: -5px;
+        cursor: nw-resize;
+      }
+      .resize-handle.ne {
+        top: -5px;
+        right: -5px;
+        cursor: ne-resize;
+      }
+      .resize-handle.sw {
+        bottom: -5px;
+        left: -5px;
+        cursor: sw-resize;
+      }
+      .resize-handle.se {
+        bottom: -5px;
+        right: -5px;
+        cursor: se-resize;
+      }
+
+      .control-section {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .upload-area {
+        border: 3px dashed #ccc;
+        border-radius: 10px;
+        padding: 30px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #fafafa;
+      }
+
+      .upload-area:hover {
+        border-color: #3498db;
+        background: #f0f8ff;
+      }
+
+      .upload-text p {
+        color: #999;
+        font-size: 16px;
+      }
+
+      .size-section {
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 10px;
+      }
+
+      .size-label {
+        display: block;
+        margin-bottom: 15px;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      .size-options {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .size-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .size-option input[type="radio"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      .size-option label {
+        cursor: pointer;
+        color: #555;
+      }
+
+      .quality-section {
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 10px;
+      }
+
+      .quality-label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      .quality-input {
+        width: 100%;
+        padding: 8px;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+
+      .format-section {
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 10px;
+      }
+
+      .format-label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      .format-select {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .btn-generate {
+        width: 100%;
+        padding: 15px;
+        font-size: 18px;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        background: #27ae60;
+        color: white;
+        transition: all 0.3s ease;
+      }
+
+      .btn-generate:hover {
+        background: #229954;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+      }
+
+      .btn-generate:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .result-section {
+        margin-top: 30px;
+        text-align: center;
+        display: none;
+      }
+
+      .result-image {
+        max-width: 100%;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .btn-download {
+        padding: 12px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        background: #3498db;
+        color: white;
+        margin: 5px;
+      }
+
+      .btn-download:hover {
+        background: #2980b9;
+      }
+
+      @media (max-width: 768px) {
+        .main-content {
+          grid-template-columns: 1fr;
+        }
+
+        .navbar {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .header h1 {
+          font-size: 28px;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+      <a href="index.html" class="nav-link">
+        <span>🎨</span>
+        <span>换底色</span>
+      </a>
+      <a href="crop.html" class="nav-link active">
+        <span>✂️</span>
+        <span>裁剪工具</span>
+      </a>
+    </nav>
+
+    <div class="container">
+      <div class="header">
+        <h1>
+          <span class="icon">✂️</span>
+          <span>证件照裁剪工具</span>
+        </h1>
+        <p class="subtitle">
+          免费在线证件照裁剪工具 · 纯前端处理 · 图片不上传服务器 · 安全快速<br />
+          支持一寸、二寸、三寸等多种尺寸，自定义裁剪区域
+        </p>
+      </div>
+
+      <div class="main-content">
+        <!-- 左侧：画布区域 -->
+        <div class="canvas-section">
+          <div class="canvas-wrapper" id="canvasWrapper" style="display: none">
+            <canvas id="canvas"></canvas>
+            <div class="crop-box" id="cropBox">
+              <div class="resize-handle nw"></div>
+              <div class="resize-handle ne"></div>
+              <div class="resize-handle sw"></div>
+              <div class="resize-handle se"></div>
+            </div>
+          </div>
+          <div id="placeholder" style="color: #999; text-align: center">
+            <p style="font-size: 18px">👈 请先上传图片</p>
+          </div>
+        </div>
+
+        <!-- 右侧：控制区域 -->
+        <div class="control-section">
+          <!-- 上传区域 -->
+          <div class="upload-area" id="uploadArea">
+            <input
+              type="file"
+              id="fileInput"
+              accept="image/*"
+              style="display: none"
+            />
+            <div class="upload-text">
+              <p>📤 点击上传证件照</p>
+            </div>
+          </div>
+
+          <!-- 尺寸选择 -->
+          <div class="size-section">
+            <label class="size-label">证件照尺寸：</label>
+            <div class="size-options">
+              <div class="size-option">
+                <input
+                  type="radio"
+                  id="size1"
+                  name="size"
+                  value="295,413"
+                  checked
+                />
+                <label for="size1">一寸 (295×413 像素)</label>
+              </div>
+              <div class="size-option">
+                <input type="radio" id="size2" name="size" value="413,579" />
+                <label for="size2">二寸 (413×579 像素)</label>
+              </div>
+              <div class="size-option">
+                <input type="radio" id="size3" name="size" value="449,661" />
+                <label for="size3">三寸 (449×661 像素)</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 图像质量 -->
+          <div class="quality-section">
+            <label class="quality-label">输出图像宽度（像素）：</label>
+            <input
+              type="number"
+              class="quality-input"
+              id="qualityInput"
+              value="500"
+              min="100"
+              max="2000"
+            />
+          </div>
+
+          <!-- 输出格式 -->
+          <div class="format-section">
+            <label class="format-label">输出图片格式：</label>
+            <select class="format-select" id="formatSelect">
+              <option value="image/jpeg">JPG</option>
+              <option value="image/png">PNG</option>
+            </select>
+          </div>
+
+          <!-- 生成按钮 -->
+          <button class="btn-generate" id="generateBtn" disabled>
+            🎨 生成证件照
+          </button>
+        </div>
+      </div>
+
+      <!-- 结果区域 -->
+      <div class="result-section" id="resultSection">
+        <h2 style="margin-bottom: 20px; color: #2c3e50">裁剪结果</h2>
+        <img id="resultImage" class="result-image" alt="裁剪结果" />
+        <div>
+          <button class="btn-download" id="downloadBtn">📥 下载图片</button>
+        </div>
+      </div>
+
+      <div
+        class="tips"
+        style="
+          margin-top: 40px;
+          padding: 20px;
+          background: #fff3cd;
+          border-radius: 10px;
+          border-left: 4px solid #ffc107;
+        "
+      >
+        <p style="font-weight: 600; color: #856404; margin-bottom: 10px">
+          💡 使用说明
+        </p>
+        <ul style="color: #856404; line-height: 1.8; padding-left: 20px">
+          <li>上传证件照后，可以拖动裁剪框调整位置</li>
+          <li>拖动裁剪框四角的圆点可以调整大小</li>
+          <li>选择证件照尺寸后，裁剪框会自动调整比例</li>
+          <li>所有处理在浏览器本地完成，图片不会上传到服务器</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      let uploadedImage = null;
+      let cropBox = null;
+      let isDragging = false;
+      let isResizing = false;
+      let resizeHandle = null;
+      let startX = 0;
+      let startY = 0;
+      let startLeft = 0;
+      let startTop = 0;
+      let startWidth = 0;
+      let startHeight = 0;
+
+      const uploadArea = document.getElementById("uploadArea");
+      const fileInput = document.getElementById("fileInput");
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const canvasWrapper = document.getElementById("canvasWrapper");
+      const placeholder = document.getElementById("placeholder");
+      const cropBoxEl = document.getElementById("cropBox");
+      const generateBtn = document.getElementById("generateBtn");
+      const resultSection = document.getElementById("resultSection");
+      const resultImage = document.getElementById("resultImage");
+      const downloadBtn = document.getElementById("downloadBtn");
+
+      // 上传区域点击事件
+      uploadArea.addEventListener("click", () => fileInput.click());
+
+      // 文件选择
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          handleImageUpload(file);
+        }
+      });
+
+      // 处理图片上传
+      function handleImageUpload(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            uploadedImage = img;
+            displayImage();
+            generateBtn.disabled = false;
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // 显示图片
+      function displayImage() {
+        // 设置 canvas 尺寸
+        const maxWidth = 600;
+        const scale = Math.min(1, maxWidth / uploadedImage.width);
+        canvas.width = uploadedImage.width * scale;
+        canvas.height = uploadedImage.height * scale;
+
+        // 绘制图片
+        ctx.drawImage(uploadedImage, 0, 0, canvas.width, canvas.height);
+
+        // 显示 canvas
+        placeholder.style.display = "none";
+        canvasWrapper.style.display = "inline-block";
+
+        // 初始化裁剪框
+        initCropBox();
+      }
+
+      // 初始化裁剪框
+      function initCropBox() {
+        const sizeRadio = document.querySelector('input[name="size"]:checked');
+        const [width, height] = sizeRadio.value.split(",").map(Number);
+        const ratio = width / height;
+
+        // 计算裁剪框尺寸（占 canvas 的 70%）
+        let cropWidth = canvas.width * 0.7;
+        let cropHeight = cropWidth / ratio;
+
+        if (cropHeight > canvas.height * 0.7) {
+          cropHeight = canvas.height * 0.7;
+          cropWidth = cropHeight * ratio;
+        }
+
+        // 居中显示
+        const left = (canvas.width - cropWidth) / 2;
+        const top = (canvas.height - cropHeight) / 2;
+
+        cropBox = {
+          left: left,
+          top: top,
+          width: cropWidth,
+          height: cropHeight,
+          ratio: ratio,
+        };
+
+        updateCropBox();
+      }
+
+      // 更新裁剪框显示
+      function updateCropBox() {
+        cropBoxEl.style.left = cropBox.left + "px";
+        cropBoxEl.style.top = cropBox.top + "px";
+        cropBoxEl.style.width = cropBox.width + "px";
+        cropBoxEl.style.height = cropBox.height + "px";
+      }
+
+      // 尺寸选择改变
+      document.querySelectorAll('input[name="size"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+          if (uploadedImage) {
+            initCropBox();
+          }
+        });
+      });
+
+      // 裁剪框拖动
+      cropBoxEl.addEventListener("mousedown", (e) => {
+        if (e.target.classList.contains("resize-handle")) {
+          isResizing = true;
+          resizeHandle = e.target.classList[1]; // nw, ne, sw, se
+        } else {
+          isDragging = true;
+        }
+
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = cropBox.left;
+        startTop = cropBox.top;
+        startWidth = cropBox.width;
+        startHeight = cropBox.height;
+
+        e.preventDefault();
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (isDragging) {
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+
+          cropBox.left = Math.max(
+            0,
+            Math.min(canvas.width - cropBox.width, startLeft + dx)
+          );
+          cropBox.top = Math.max(
+            0,
+            Math.min(canvas.height - cropBox.height, startTop + dy)
+          );
+
+          updateCropBox();
+        } else if (isResizing) {
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+
+          if (resizeHandle === "se") {
+            cropBox.width = Math.max(50, startWidth + dx);
+            cropBox.height = cropBox.width / cropBox.ratio;
+          } else if (resizeHandle === "sw") {
+            const newWidth = Math.max(50, startWidth - dx);
+            cropBox.width = newWidth;
+            cropBox.height = cropBox.width / cropBox.ratio;
+            cropBox.left = startLeft + (startWidth - newWidth);
+          } else if (resizeHandle === "ne") {
+            cropBox.width = Math.max(50, startWidth + dx);
+            cropBox.height = cropBox.width / cropBox.ratio;
+            cropBox.top = startTop + startHeight - cropBox.height;
+          } else if (resizeHandle === "nw") {
+            const newWidth = Math.max(50, startWidth - dx);
+            cropBox.width = newWidth;
+            cropBox.height = cropBox.width / cropBox.ratio;
+            cropBox.left = startLeft + (startWidth - newWidth);
+            cropBox.top = startTop + startHeight - cropBox.height;
+          }
+
+          // 限制边界
+          if (cropBox.left < 0) {
+            cropBox.width += cropBox.left;
+            cropBox.height = cropBox.width / cropBox.ratio;
+            cropBox.left = 0;
+          }
+          if (cropBox.top < 0) {
+            cropBox.height += cropBox.top;
+            cropBox.width = cropBox.height * cropBox.ratio;
+            cropBox.top = 0;
+          }
+          if (cropBox.left + cropBox.width > canvas.width) {
+            cropBox.width = canvas.width - cropBox.left;
+            cropBox.height = cropBox.width / cropBox.ratio;
+          }
+          if (cropBox.top + cropBox.height > canvas.height) {
+            cropBox.height = canvas.height - cropBox.top;
+            cropBox.width = cropBox.height * cropBox.ratio;
+          }
+
+          updateCropBox();
+        }
+      });
+
+      document.addEventListener("mouseup", () => {
+        isDragging = false;
+        isResizing = false;
+        resizeHandle = null;
+      });
+
+      // 生成证件照
+      generateBtn.addEventListener("click", () => {
+        if (!uploadedImage || !cropBox) return;
+
+        // 获取输出质量
+        const outputWidth = parseInt(
+          document.getElementById("qualityInput").value
+        );
+        const format = document.getElementById("formatSelect").value;
+
+        // 计算缩放比例
+        const scaleX = uploadedImage.width / canvas.width;
+        const scaleY = uploadedImage.height / canvas.height;
+
+        // 计算原图中的裁剪区域
+        const cropX = cropBox.left * scaleX;
+        const cropY = cropBox.top * scaleY;
+        const cropWidth = cropBox.width * scaleX;
+        const cropHeight = cropBox.height * scaleY;
+
+        // 创建临时 canvas
+        const tempCanvas = document.createElement("canvas");
+        const tempCtx = tempCanvas.getContext("2d");
+
+        // 设置输出尺寸
+        tempCanvas.width = outputWidth;
+        tempCanvas.height = outputWidth / cropBox.ratio;
+
+        // 绘制裁剪后的图片
+        tempCtx.drawImage(
+          uploadedImage,
+          cropX,
+          cropY,
+          cropWidth,
+          cropHeight,
+          0,
+          0,
+          tempCanvas.width,
+          tempCanvas.height
+        );
+
+        // 显示结果
+        const dataUrl = tempCanvas.toDataURL(format, 0.95);
+        resultImage.src = dataUrl;
+        resultSection.style.display = "block";
+
+        // 滚动到结果区域
+        resultSection.scrollIntoView({ behavior: "smooth" });
+      });
+
+      // 下载按钮
+      downloadBtn.addEventListener("click", () => {
+        const link = document.createElement("a");
+        link.href = resultImage.src;
+        const format = document.getElementById("formatSelect").value;
+        const ext = format === "image/jpeg" ? "jpg" : "png";
+        link.download = `证件照_${Date.now()}.${ext}`;
+        link.click();
+      });
+    </script>
+  </body>
+</html>
