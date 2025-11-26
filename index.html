@@ -713,6 +713,15 @@
 
     <canvas id="canvas"></canvas>
 
+    <!-- 加载 Gradio JavaScript Client -->
+    <script type="module">
+      import { Client } from "https://cdn.jsdelivr.net/npm/@gradio/client@1.3.0/dist/index.min.js";
+
+      // 将 Client 暴露给全局
+      window.GradioClient = Client;
+      console.log("Gradio Client 已加载");
+    </script>
+
     <script>
       // 配置：设置为 true 使用 Hugging Face API，false 使用纯前端处理
       const USE_SERVER = true;
@@ -829,89 +838,65 @@
         }
       }
 
-      // 调用 Hugging Face Gradio API（使用简化的直接调用方式）
+      // 调用 Hugging Face Gradio API（使用官方 Gradio Client）
       async function callHuggingFaceAPI(file, colorChoice) {
         try {
-          // 将文件转换为 base64
-          const base64 = await fileToBase64(file);
+          console.log("开始调用 Hugging Face API...");
+          console.log("文件:", file.name, "颜色选择:", colorChoice);
 
-          // 尝试多个可能的 API 端点
-          const endpoints = [
-            "/api/predict",
-            "/run/predict",
-            "/api/process_image",
-          ];
-
-          let lastError = null;
-
-          for (const endpoint of endpoints) {
-            try {
-              console.log(`尝试端点: ${endpoint}`);
-
-              const response = await fetch(`${SERVER_URL}${endpoint}`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  data: [base64, colorChoice],
-                }),
-              });
-
-              console.log(`${endpoint} 响应状态:`, response.status);
-
-              if (!response.ok) {
-                const errorText = await response.text();
-                console.log(`${endpoint} 错误响应:`, errorText);
-                lastError = new Error(`${endpoint} 返回 ${response.status}`);
-                continue;
-              }
-
-              const result = await response.json();
-              console.log(`${endpoint} 返回结果:`, result);
-
-              // 检查返回数据
-              if (result && result.data && Array.isArray(result.data)) {
-                // 处理返回的图片数据
-                const images = result.data.map((imgData) => {
-                  if (!imgData) return null;
-
-                  // 如果是对象，提取 URL
-                  if (typeof imgData === "object") {
-                    if (imgData.url) {
-                      return imgData.url.startsWith("/")
-                        ? `${SERVER_URL}${imgData.url}`
-                        : imgData.url;
-                    }
-                    if (imgData.path) {
-                      return imgData.path.startsWith("/")
-                        ? `${SERVER_URL}${imgData.path}`
-                        : imgData.path;
-                    }
-                  }
-
-                  // 如果是字符串路径
-                  if (typeof imgData === "string") {
-                    return imgData.startsWith("/")
-                      ? `${SERVER_URL}${imgData}`
-                      : imgData;
-                  }
-
-                  return null;
-                });
-
-                console.log("处理后的图片 URLs:", images);
-                return images;
-              }
-            } catch (error) {
-              console.error(`${endpoint} 调用失败:`, error);
-              lastError = error;
-              continue;
-            }
+          // 检查 GradioClient 是否已加载
+          if (!window.GradioClient) {
+            throw new Error("Gradio Client 未加载，请刷新页面重试");
           }
 
-          // 所有端点都失败了
-          throw lastError || new Error("所有 API 端点都失败了");
+          // 连接到 Gradio Space
+          console.log("连接到 Gradio Space:", SERVER_URL);
+          const client = await window.GradioClient.connect(SERVER_URL);
+          console.log("连接成功！");
+
+          // 调用 predict 方法
+          console.log("调用 predict 方法...");
+          const result = await client.predict("/predict", {
+            input_image: file,
+            color_choice: colorChoice,
+          });
+
+          console.log("API 返回结果:", result);
+
+          // 处理返回的数据
+          if (result && result.data && Array.isArray(result.data)) {
+            const images = result.data.map((imgData) => {
+              if (!imgData) return null;
+
+              // 如果是对象，提取 URL
+              if (typeof imgData === "object") {
+                if (imgData.url) {
+                  return imgData.url.startsWith("/")
+                    ? `${SERVER_URL}${imgData.url}`
+                    : imgData.url;
+                }
+                if (imgData.path) {
+                  return imgData.path.startsWith("/")
+                    ? `${SERVER_URL}${imgData.path}`
+                    : imgData.path;
+                }
+              }
+
+              // 如果是字符串路径
+              if (typeof imgData === "string") {
+                return imgData.startsWith("/")
+                  ? `${SERVER_URL}${imgData}`
+                  : imgData;
+              }
+
+              return null;
+            });
+
+            console.log("处理后的图片 URLs:", images);
+            return images;
+          } else {
+            throw new Error("API 返回数据格式错误");
+          }
         } catch (error) {
           console.error("调用 Hugging Face API 失败:", error);
           throw error;

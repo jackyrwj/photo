@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试 Hugging Face API</title>
+</head>
+<body>
+    <h1>测试 Hugging Face Gradio API</h1>
+    <input type="file" id="fileInput" accept="image/*">
+    <button onclick="testAPI()">测试 API</button>
+    <div id="result"></div>
+    <div id="images"></div>
+
+    <script>
+        const SERVER_URL = "https://jackyrjw-huandise.hf.space";
+
+        async function testAPI() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('请先选择文件');
+                return;
+            }
+
+            const resultDiv = document.getElementById('result');
+            const imagesDiv = document.getElementById('images');
+            resultDiv.innerHTML = '处理中...';
+            imagesDiv.innerHTML = '';
+
+            try {
+                // 方法 1: 尝试 /run/predict
+                console.log('尝试方法 1: /run/predict');
+                try {
+                    const base64 = await fileToBase64(file);
+                    const response1 = await fetch(`${SERVER_URL}/run/predict`, {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({
+                            data: [base64, "全部"]
+                        })
+                    });
+                    console.log('方法 1 响应状态:', response1.status);
+                    const result1 = await response1.json();
+                    console.log('方法 1 结果:', result1);
+                    
+                    if (response1.ok && result1.data) {
+                        resultDiv.innerHTML = '✅ 方法 1 成功！';
+                        displayImages(result1.data);
+                        return;
+                    }
+                } catch (e) {
+                    console.error('方法 1 失败:', e);
+                }
+
+                // 方法 2: 尝试 /api/predict
+                console.log('尝试方法 2: /api/predict');
+                try {
+                    const base64 = await fileToBase64(file);
+                    const response2 = await fetch(`${SERVER_URL}/api/predict`, {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({
+                            data: [base64, "全部"]
+                        })
+                    });
+                    console.log('方法 2 响应状态:', response2.status);
+                    const result2 = await response2.json();
+                    console.log('方法 2 结果:', result2);
+                    
+                    if (response2.ok && result2.data) {
+                        resultDiv.innerHTML = '✅ 方法 2 成功！';
+                        displayImages(result2.data);
+                        return;
+                    }
+                } catch (e) {
+                    console.error('方法 2 失败:', e);
+                }
+
+                // 方法 3: 尝试上传文件 + /call/
+                console.log('尝试方法 3: /upload + /call/');
+                try {
+                    // 先上传文件
+                    const uploadFormData = new FormData();
+                    uploadFormData.append('files', file);
+                    
+                    const uploadResponse = await fetch(`${SERVER_URL}/upload`, {
+                        method: "POST",
+                        body: uploadFormData
+                    });
+                    console.log('上传响应状态:', uploadResponse.status);
+                    const uploadResult = await uploadResponse.json();
+                    console.log('上传结果:', uploadResult);
+                    
+                    // 然后调用 API
+                    const callFormData = new FormData();
+                    callFormData.append("data", JSON.stringify([uploadResult[0], "全部"]));
+                    
+                    const callResponse = await fetch(`${SERVER_URL}/call/predict`, {
+                        method: "POST",
+                        body: callFormData
+                    });
+                    console.log('调用响应状态:', callResponse.status);
+                    const callResult = await callResponse.json();
+                    console.log('调用结果:', callResult);
+                    
+                    if (callResponse.ok) {
+                        resultDiv.innerHTML = '✅ 方法 3 成功！Event ID: ' + callResult.event_id;
+                        return;
+                    }
+                } catch (e) {
+                    console.error('方法 3 失败:', e);
+                }
+
+                resultDiv.innerHTML = '❌ 所有方法都失败了，请查看控制台';
+                
+            } catch (error) {
+                resultDiv.innerHTML = '❌ 错误: ' + error.message;
+                console.error('测试失败:', error);
+            }
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function displayImages(data) {
+            const imagesDiv = document.getElementById('images');
+            data.forEach((imgData, index) => {
+                if (imgData) {
+                    const img = document.createElement('img');
+                    if (typeof imgData === 'object' && imgData.url) {
+                        img.src = imgData.url.startsWith('/') ? SERVER_URL + imgData.url : imgData.url;
+                    } else if (typeof imgData === 'string') {
+                        img.src = imgData.startsWith('/') ? SERVER_URL + imgData : imgData;
+                    }
+                    img.style.maxWidth = '300px';
+                    img.style.margin = '10px';
+                    imagesDiv.appendChild(img);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
