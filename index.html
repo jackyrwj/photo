@@ -829,52 +829,89 @@
         }
       }
 
-      // 调用 Hugging Face Gradio API
+      // 调用 Hugging Face Gradio API（使用简化的直接调用方式）
       async function callHuggingFaceAPI(file, colorChoice) {
         try {
           // 将文件转换为 base64
           const base64 = await fileToBase64(file);
 
-          // Gradio API 调用格式
-          const response = await fetch(`${SERVER_URL}/api/predict`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              data: [
-                base64, // 图片 (base64)
-                colorChoice, // 颜色选择 ("全部", "白色", "蓝色", "红色")
-              ],
-            }),
-          });
+          // 尝试多个可能的 API 端点
+          const endpoints = [
+            "/api/predict",
+            "/run/predict",
+            "/api/process_image",
+          ];
 
-          if (!response.ok) {
-            throw new Error(`API 请求失败: ${response.status}`);
+          let lastError = null;
+
+          for (const endpoint of endpoints) {
+            try {
+              console.log(`尝试端点: ${endpoint}`);
+
+              const response = await fetch(`${SERVER_URL}${endpoint}`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  data: [base64, colorChoice],
+                }),
+              });
+
+              console.log(`${endpoint} 响应状态:`, response.status);
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.log(`${endpoint} 错误响应:`, errorText);
+                lastError = new Error(`${endpoint} 返回 ${response.status}`);
+                continue;
+              }
+
+              const result = await response.json();
+              console.log(`${endpoint} 返回结果:`, result);
+
+              // 检查返回数据
+              if (result && result.data && Array.isArray(result.data)) {
+                // 处理返回的图片数据
+                const images = result.data.map((imgData) => {
+                  if (!imgData) return null;
+
+                  // 如果是对象，提取 URL
+                  if (typeof imgData === "object") {
+                    if (imgData.url) {
+                      return imgData.url.startsWith("/")
+                        ? `${SERVER_URL}${imgData.url}`
+                        : imgData.url;
+                    }
+                    if (imgData.path) {
+                      return imgData.path.startsWith("/")
+                        ? `${SERVER_URL}${imgData.path}`
+                        : imgData.path;
+                    }
+                  }
+
+                  // 如果是字符串路径
+                  if (typeof imgData === "string") {
+                    return imgData.startsWith("/")
+                      ? `${SERVER_URL}${imgData}`
+                      : imgData;
+                  }
+
+                  return null;
+                });
+
+                console.log("处理后的图片 URLs:", images);
+                return images;
+              }
+            } catch (error) {
+              console.error(`${endpoint} 调用失败:`, error);
+              lastError = error;
+              continue;
+            }
           }
 
-          const result = await response.json();
-
-          // Gradio 返回格式: {data: [图片1, 图片2, 图片3]}
-          if (result.data) {
-            // 将返回的图片 URL 转换为可用的格式
-            const images = await Promise.all(
-              result.data.map(async (imgData) => {
-                if (!imgData) return null;
-
-                // 如果是相对路径，转换为完整 URL
-                if (imgData.startsWith("/")) {
-                  imgData = `${SERVER_URL}${imgData}`;
-                }
-
-                return imgData;
-              })
-            );
-
-            return images;
-          } else {
-            throw new Error("API 返回数据格式错误");
-          }
+          // 所有端点都失败了
+          throw lastError || new Error("所有 API 端点都失败了");
         } catch (error) {
           console.error("调用 Hugging Face API 失败:", error);
           throw error;
