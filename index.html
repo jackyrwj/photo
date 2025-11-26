@@ -675,10 +675,11 @@
         "
       >
         <p style="font-weight: 600; color: #856404; margin-bottom: 10px">
-          💡 纯前端版本 - 所有处理在浏览器本地完成，图片不会上传到服务器！
+          🤖 AI 智能版 - 使用 OpenCV K-means 算法，效果更好，不会改变头发颜色！
         </p>
         <p style="color: #856404; line-height: 1.6">
-          请使用背景整洁的正装证件照，效果最佳。支持 JPG、PNG 格式。
+          请使用背景整洁的正装证件照，效果最佳。支持 JPG、PNG 格式。处理由
+          Hugging Face 提供支持。
         </p>
       </div>
 
@@ -713,9 +714,9 @@
     <canvas id="canvas"></canvas>
 
     <script>
-      // 配置：设置为 true 使用服务端处理，false 使用纯前端处理
-      const USE_SERVER = false;
-      const SERVER_URL = "http://localhost:5000"; // 部署后改为你的服务器地址，例如：https://your-app.up.railway.app
+      // 配置：设置为 true 使用 Hugging Face API，false 使用纯前端处理
+      const USE_SERVER = true;
+      const SERVER_URL = "https://jackyrjw-huandise.hf.space"; // Hugging Face Space API
 
       let uploadedImage = null;
       let processedImages = {};
@@ -787,7 +788,7 @@
         reader.readAsDataURL(file);
       }
 
-      // 服务端处理所有颜色
+      // 服务端处理所有颜色（使用 Hugging Face Gradio API）
       async function processAllColorsServer() {
         loading.style.display = "flex";
 
@@ -795,57 +796,99 @@
         document.getElementById("originalImage").src = uploadedImage.src;
 
         try {
-          // 处理三种颜色
-          await processColorServer("#ffffff", "white");
-          await processColorServer("#2196F3", "blue");
-          await processColorServer("#ff0000", "red");
+          // 调用 Hugging Face API 一次性处理所有颜色
+          const result = await callHuggingFaceAPI(uploadedFile, "全部");
 
-          // 显示结果
-          document.getElementById("whiteImage").src = processedImages.white;
-          document.getElementById("blueImage").src = processedImages.blue;
-          document.getElementById("redImage").src = processedImages.red;
+          // result 是一个数组 [白色图片, 蓝色图片, 红色图片]
+          if (result && result.length === 3) {
+            processedImages.white = result[0];
+            processedImages.blue = result[1];
+            processedImages.red = result[2];
 
-          resultSection.style.display = "block";
-          loading.style.display = "none";
+            // 显示结果
+            document.getElementById("whiteImage").src = processedImages.white;
+            document.getElementById("blueImage").src = processedImages.blue;
+            document.getElementById("redImage").src = processedImages.red;
 
-          // 滚动到结果区域
-          resultSection.scrollIntoView({ behavior: "smooth" });
+            resultSection.style.display = "block";
+            loading.style.display = "none";
+
+            // 滚动到结果区域
+            resultSection.scrollIntoView({ behavior: "smooth" });
+          } else {
+            throw new Error("API 返回数据格式错误");
+          }
         } catch (error) {
           loading.style.display = "none";
-          alert("处理失败：" + error.message);
+          alert(
+            "处理失败：" +
+              error.message +
+              "\n\n提示：请确保 Hugging Face Space 正在运行"
+          );
+          console.error("处理失败:", error);
         }
       }
 
-      // 服务端处理单个颜色
-      async function processColorServer(hexColor, colorName) {
-        const formData = new FormData();
-        formData.append("file", uploadedFile);
-        formData.append("color", hexColor);
-
+      // 调用 Hugging Face Gradio API
+      async function callHuggingFaceAPI(file, colorChoice) {
         try {
-          const response = await fetch(`${SERVER_URL}/upload`, {
+          // 将文件转换为 base64
+          const base64 = await fileToBase64(file);
+
+          // Gradio API 调用格式
+          const response = await fetch(`${SERVER_URL}/api/predict`, {
             method: "POST",
-            body: formData,
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              data: [
+                base64, // 图片 (base64)
+                colorChoice, // 颜色选择 ("全部", "白色", "蓝色", "红色")
+              ],
+            }),
           });
 
           if (!response.ok) {
-            throw new Error("服务器处理失败");
+            throw new Error(`API 请求失败: ${response.status}`);
           }
 
-          const data = await response.json();
-          if (data.success) {
-            // 获取处理后的图片
-            const imageUrl = `${SERVER_URL}/download/${data.output_file}`;
-            const imageResponse = await fetch(imageUrl);
-            const blob = await imageResponse.blob();
-            processedImages[colorName] = URL.createObjectURL(blob);
+          const result = await response.json();
+
+          // Gradio 返回格式: {data: [图片1, 图片2, 图片3]}
+          if (result.data) {
+            // 将返回的图片 URL 转换为可用的格式
+            const images = await Promise.all(
+              result.data.map(async (imgData) => {
+                if (!imgData) return null;
+
+                // 如果是相对路径，转换为完整 URL
+                if (imgData.startsWith("/")) {
+                  imgData = `${SERVER_URL}${imgData}`;
+                }
+
+                return imgData;
+              })
+            );
+
+            return images;
           } else {
-            throw new Error(data.error || "处理失败");
+            throw new Error("API 返回数据格式错误");
           }
         } catch (error) {
-          console.error(`处理 ${colorName} 失败:`, error);
+          console.error("调用 Hugging Face API 失败:", error);
           throw error;
         }
+      }
+
+      // 将文件转换为 base64
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
       }
 
       // 纯前端处理所有颜色
