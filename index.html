@@ -690,7 +690,8 @@
           · 免费使用 · 欢迎 Star ⭐
         </p>
         <div class="tech-stack">
-          <span>HTML5</span>· <span>Canvas API</span>· <span>纯前端处理</span>·
+          <span>HTML5</span>· <span>Canvas API</span>·
+          <span id="processingMode">纯前端处理</span>·
           <span>隐私安全</span>
         </div>
         <p style="margin-top: 10px; font-size: 12px">
@@ -708,8 +709,13 @@
     <canvas id="canvas"></canvas>
 
     <script>
+      // 配置：设置为 true 使用服务端处理，false 使用纯前端处理
+      const USE_SERVER = false;
+      const SERVER_URL = "http://localhost:5000"; // 部署后改为你的服务器地址，例如：https://your-app.up.railway.app
+
       let uploadedImage = null;
       let processedImages = {};
+      let uploadedFile = null;
 
       const uploadArea = document.getElementById("uploadArea");
       const fileInput = document.getElementById("fileInput");
@@ -717,6 +723,16 @@
       const resultSection = document.getElementById("resultSection");
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d");
+
+      // 更新处理模式显示
+      window.addEventListener("load", () => {
+        const modeEl = document.getElementById("processingMode");
+        if (USE_SERVER) {
+          modeEl.textContent = "服务端处理（效果更好）";
+          modeEl.style.color = "#27ae60";
+          modeEl.style.fontWeight = "600";
+        }
+      });
 
       // 上传区域点击事件
       uploadArea.addEventListener("click", () => fileInput.click());
@@ -750,19 +766,85 @@
 
       // 处理图片上传
       function handleImageUpload(file) {
+        uploadedFile = file;
         const reader = new FileReader();
         reader.onload = (e) => {
           const img = new Image();
           img.onload = () => {
             uploadedImage = img;
-            processAllColors();
+            if (USE_SERVER) {
+              processAllColorsServer();
+            } else {
+              processAllColors();
+            }
           };
           img.src = e.target.result;
         };
         reader.readAsDataURL(file);
       }
 
-      // 处理所有颜色
+      // 服务端处理所有颜色
+      async function processAllColorsServer() {
+        loading.style.display = "flex";
+
+        // 显示原图
+        document.getElementById("originalImage").src = uploadedImage.src;
+
+        try {
+          // 处理三种颜色
+          await processColorServer("#ffffff", "white");
+          await processColorServer("#2196F3", "blue");
+          await processColorServer("#ff0000", "red");
+
+          // 显示结果
+          document.getElementById("whiteImage").src = processedImages.white;
+          document.getElementById("blueImage").src = processedImages.blue;
+          document.getElementById("redImage").src = processedImages.red;
+
+          resultSection.style.display = "block";
+          loading.style.display = "none";
+
+          // 滚动到结果区域
+          resultSection.scrollIntoView({ behavior: "smooth" });
+        } catch (error) {
+          loading.style.display = "none";
+          alert("处理失败：" + error.message);
+        }
+      }
+
+      // 服务端处理单个颜色
+      async function processColorServer(hexColor, colorName) {
+        const formData = new FormData();
+        formData.append("file", uploadedFile);
+        formData.append("color", hexColor);
+
+        try {
+          const response = await fetch(`${SERVER_URL}/upload`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error("服务器处理失败");
+          }
+
+          const data = await response.json();
+          if (data.success) {
+            // 获取处理后的图片
+            const imageUrl = `${SERVER_URL}/download/${data.output_file}`;
+            const imageResponse = await fetch(imageUrl);
+            const blob = await imageResponse.blob();
+            processedImages[colorName] = URL.createObjectURL(blob);
+          } else {
+            throw new Error(data.error || "处理失败");
+          }
+        } catch (error) {
+          console.error(`处理 ${colorName} 失败:`, error);
+          throw error;
+        }
+      }
+
+      // 纯前端处理所有颜色
       async function processAllColors() {
         loading.style.display = "flex";
 
