@@ -81,6 +81,22 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/ads.txt')
+def ads_txt():
+    """提供 ads.txt 文件给 AdSense 爬虫"""
+    return send_file('ads.txt', mimetype='text/plain')
+
+
+@app.route('/crop')
+@app.route('/crop.html')
+def crop():
+    """证件照裁剪工具页面"""
+    return send_file('crop.html', mimetype='text/html')
+
+
+
+
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
