@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>在线免费证件照换底色工具 - 换底色</title>
+    <title>换底色 - 在线证件照换底色工具</title>
     <meta
       name="description"
-      content="免费在线证件照换底色工具，支持白底、蓝底、红底等多种颜色，纯前端处理，图片不上传服务器，安全快速。"
+      content="免费在线证件照换底色工具，支持白底、蓝底、红底等多种颜色，智能抠图，效果专业。"
     />
     <meta
       name="keywords"
@@ -487,6 +487,144 @@
           height: 18px;
         }
       }
+
+      .color-display {
+        font-family: monospace;
+        background: #f0f0f0;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .custom-color {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+      .custom-color label {
+        font-size: 14px;
+        color: #666;
+      }
+
+      .custom-color input[type="color"] {
+        width: 50px;
+        height: 35px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .action-section {
+        margin-top: 20px;
+        text-align: center;
+      }
+
+      .btn-primary {
+        padding: 15px 40px;
+        font-size: 18px;
+        font-weight: 600;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-primary:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .loading-placeholder {
+        padding: 40px;
+        background: #f0f0f0;
+        border-radius: 8px;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .custom-result-section {
+        margin-top: 40px;
+        text-align: center;
+      }
+
+      .custom-result-section .result-images {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .btn-success {
+        padding: 12px 30px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        background: #27ae60;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #229954;
+      }
+
+      .tips {
+        margin-top: 40px;
+        padding: 20px;
+        background: #fff3cd;
+        border-radius: 10px;
+        border-left: 4px solid #ffc107;
+      }
+
+      .tips .tip-title {
+        font-weight: 600;
+        color: #856404;
+        margin-bottom: 10px;
+      }
+
+      .tips p {
+        color: #856404;
+        line-height: 1.6;
+        margin-bottom: 8px;
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 40px;
+        padding: 20px;
+        color: #666;
+      }
+
+      .footer a {
+        color: #667eea;
+        text-decoration: none;
+      }
+
+      .footer a:hover {
+        text-decoration: underline;
+      }
+
+      .tech-stack {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #999;
+      }
+
+      .tech-stack span {
+        background: #f0f0f0;
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin: 0 2px;
+      }
     </style>
   </head>
   <body>
@@ -522,7 +660,7 @@
           <span>换底色</span>
         </h1>
         <p class="subtitle">
-          免费在线证件照换底色工具 · 纯前端处理 · 图片不上传服务器 · 安全快速<br />
+          免费在线证件照换底色工具 · 智能抠图 · 效果专业<br />
           支持白底、蓝底、红底等多种颜色，一键生成标准证件照
         </p>
       </div>
@@ -576,12 +714,16 @@
           </div>
 
           <div class="color-section">
+            <div class="color-label">
+              <span>照片底色：</span>
+              <span class="color-display" id="colorDisplay">#ff0000</span>
+            </div>
             <div class="color-label-sub">
-              常见底色（点击选择，白/蓝/红自动预览）：
+              常见底色（点击直接选，白/蓝/红自动预览）：
             </div>
             <div class="preset-colors">
               <div
-                class="color-box auto-preview selected"
+                class="color-box auto-preview"
                 data-color="#ffffff"
                 style="background-color: #ffffff; border: 2px solid #ddd"
                 title="白色"
@@ -629,6 +771,14 @@
                 title="暗红色"
               ></div>
             </div>
+            <div class="custom-color">
+              <label for="colorPicker">自定义颜色：</label>
+              <input type="color" id="colorPicker" value="#ff0000">
+            </div>
+          </div>
+
+          <div class="action-section">
+            <button id="processBtn" class="btn-primary" disabled>开始处理</button>
           </div>
         </div>
       </div>
@@ -642,69 +792,72 @@
           </div>
           <div class="image-container">
             <h3>白底</h3>
-            <img id="whiteImage" alt="白底" />
+            <img id="whiteImage" alt="白底" style="display: none;" />
+            <div class="loading-placeholder" id="whiteLoading">处理中...</div>
           </div>
           <div class="image-container">
             <h3>蓝底</h3>
-            <img id="blueImage" alt="蓝底" />
+            <img id="blueImage" alt="蓝底" style="display: none;" />
+            <div class="loading-placeholder" id="blueLoading">处理中...</div>
           </div>
           <div class="image-container">
             <h3>红底</h3>
-            <img id="redImage" alt="红底" />
+            <img id="redImage" alt="红底" style="display: none;" />
+            <div class="loading-placeholder" id="redLoading">处理中...</div>
           </div>
         </div>
         <div class="download-buttons">
-          <button class="btn-download" id="downloadWhite">下载白底</button>
-          <button class="btn-download" id="downloadBlue">下载蓝底</button>
-          <button class="btn-download" id="downloadRed">下载红底</button>
+          <button class="btn-download" id="downloadWhite" style="display: none;">下载白底</button>
+          <button class="btn-download" id="downloadBlue" style="display: none;">下载蓝底</button>
+          <button class="btn-download" id="downloadRed" style="display: none;">下载红底</button>
         </div>
       </div>
 
-      <div
-        class="tips"
-        style="
-          margin-top: 40px;
-          padding: 20px;
-          background: #fff3cd;
-          border-radius: 10px;
-          border-left: 4px solid #ffc107;
-        "
-      >
-        <p style="font-weight: 600; color: #856404; margin-bottom: 10px">
-          🤖 AI 智能版 - 使用 OpenCV K-means 算法，效果更好，不会改变头发颜色！
-        </p>
-        <p style="color: #856404; line-height: 1.6">
-          请使用背景整洁的正装证件照，效果最佳。支持 JPG、PNG 格式。处理由
-          Hugging Face 提供支持。
-        </p>
+      <!-- 自定义颜色结果 -->
+      <div class="custom-result-section" id="customResultSection" style="display: none;">
+        <h2>自定义颜色结果</h2>
+        <div class="result-images">
+          <div class="image-container">
+            <h3>原图</h3>
+            <img id="customOriginalImage" alt="原图">
+          </div>
+          <div class="image-container">
+            <h3>处理后</h3>
+            <img id="customResultImage" alt="处理后">
+          </div>
+        </div>
+        <button id="downloadCustom" class="btn-success">下载图片</button>
+      </div>
+
+      <div class="tips">
+        <p class="tip-title">证件照限时免费中。AI智能一键制作证件照&换底色。更多格式可选。更智能快捷。欢迎免费试用。</p>
+        <p>证件照在线换底色工具支持一键智能证件照背景色，一键智能抠图换底，智能方便。提供已抠版PNG图像下载，方便自行合成底。</p>
+        <p>请直接将现有证件照拖入上图像区中，工具将会自动为您智能抠图替换底色，您可以自行切换任意背景色。</p>
+        <p><strong>如点击图像或下载按钮无法自动下载，请右击键或长按证件照像保存即可。</strong></p>
       </div>
 
       <div class="footer">
         <p>
           ❤️ 开源项目 ·
-          <a
-            href="https://github.com/jackyrwj/photo"
-            target="_blank"
-            rel="noopener noreferrer"
-            >GitHub</a
-          >
-          · 免费使用 · 欢迎 Star ⭐
+          <a href="https://github.com/jackyrwj/photo" target="_blank" rel="noopener noreferrer">GitHub</a> ·
+          免费使用 · 欢迎 Star ⭐
         </p>
         <div class="tech-stack">
-          <span>HTML5</span>· <span>Canvas API</span>·
-          <span id="processingMode">纯前端处理</span>·
-          <span>隐私安全</span>
+          <span>Python</span>·
+          <span>Flask</span>·
+          <span>OpenCV</span>·
+          <span>智能抠图</span>
         </div>
         <p style="margin-top: 10px; font-size: 12px">
           © 2025 换底色 · Made with 🎨 by
           <a href="https://github.com/jackyrwj" target="_blank">jackyrwj</a>
         </p>
       </div>
-    </div>
 
-    <div class="loading" id="loading">
-      <div class="spinner"></div>
-      <p>处理中，请稍候...</p>
+      <div class="loading" id="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p>处理中，请稍候...</p>
+      </div>
     </div>
 
     <canvas id="canvas"></canvas>
@@ -726,23 +879,18 @@
       let uploadedImage = null;
       let processedImages = {};
       let uploadedFile = null;
+      let selectedColor = "#ff0000";
 
       const uploadArea = document.getElementById("uploadArea");
       const fileInput = document.getElementById("fileInput");
       const loading = document.getElementById("loading");
       const resultSection = document.getElementById("resultSection");
+      const customResultSection = document.getElementById("customResultSection");
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d");
-
-      // 更新处理模式显示
-      window.addEventListener("load", () => {
-        const modeEl = document.getElementById("processingMode");
-        if (USE_SERVER) {
-          modeEl.textContent = "服务端处理（效果更好）";
-          modeEl.style.color = "#27ae60";
-          modeEl.style.fontWeight = "600";
-        }
-      });
+      const processBtn = document.getElementById("processBtn");
+      const colorPicker = document.getElementById("colorPicker");
+      const colorDisplay = document.getElementById("colorDisplay");
 
       // 上传区域点击事件
       uploadArea.addEventListener("click", () => fileInput.click());
@@ -774,6 +922,38 @@
         }
       });
 
+      // 颜色选择器
+      colorPicker.addEventListener("input", (e) => {
+        selectedColor = e.target.value;
+        colorDisplay.textContent = selectedColor;
+      });
+
+      // 预设颜色点击
+      document.querySelectorAll(".color-box").forEach((box) => {
+        box.addEventListener("click", () => {
+          const color = box.dataset.color;
+          selectedColor = color;
+          colorDisplay.textContent = color;
+          colorPicker.value = color;
+
+          // 更新选中状态
+          document.querySelectorAll(".color-box").forEach((b) => b.classList.remove("selected"));
+          box.classList.add("selected");
+
+          // 如果是白/蓝/红且已上传图片，自动处理
+          if (box.classList.contains("auto-preview") && uploadedImage) {
+            processAllColorsServer();
+          }
+        });
+      });
+
+      // 开始处理按钮
+      processBtn.addEventListener("click", () => {
+        if (uploadedImage) {
+          processAllColorsServer();
+        }
+      });
+
       // 处理图片上传
       function handleImageUpload(file) {
         uploadedFile = file;
@@ -782,11 +962,9 @@
           const img = new Image();
           img.onload = () => {
             uploadedImage = img;
-            if (USE_SERVER) {
-              processAllColorsServer();
-            } else {
-              processAllColors();
-            }
+            processBtn.disabled = false;
+            // 自动开始处理
+            processAllColorsServer();
           };
           img.src = e.target.result;
         };
@@ -800,6 +978,33 @@
         // 显示原图
         document.getElementById("originalImage").src = uploadedImage.src;
 
+        // 显示结果区域，但图片显示 loading
+        resultSection.style.display = "block";
+
+        // 隐藏图片，显示 loading
+        const whiteImg = document.getElementById("whiteImage");
+        const blueImg = document.getElementById("blueImage");
+        const redImg = document.getElementById("redImage");
+        const whiteLoading = document.getElementById("whiteLoading");
+        const blueLoading = document.getElementById("blueLoading");
+        const redLoading = document.getElementById("redLoading");
+        const downloadWhite = document.getElementById("downloadWhite");
+        const downloadBlue = document.getElementById("downloadBlue");
+        const downloadRed = document.getElementById("downloadRed");
+
+        whiteImg.style.display = "none";
+        blueImg.style.display = "none";
+        redImg.style.display = "none";
+        whiteLoading.style.display = "block";
+        blueLoading.style.display = "block";
+        redLoading.style.display = "block";
+        downloadWhite.style.display = "none";
+        downloadBlue.style.display = "none";
+        downloadRed.style.display = "none";
+
+        // 滚动到结果区域
+        resultSection.scrollIntoView({ behavior: "smooth" });
+
         try {
           // 调用 Hugging Face API 一次性处理所有颜色
           const result = await callHuggingFaceAPI(uploadedFile, "全部");
@@ -810,21 +1015,30 @@
             processedImages.blue = result[1];
             processedImages.red = result[2];
 
-            // 显示结果
-            document.getElementById("whiteImage").src = processedImages.white;
-            document.getElementById("blueImage").src = processedImages.blue;
-            document.getElementById("redImage").src = processedImages.red;
+            // 显示结果图片
+            whiteImg.src = processedImages.white;
+            blueImg.src = processedImages.blue;
+            redImg.src = processedImages.red;
 
-            resultSection.style.display = "block";
+            whiteImg.style.display = "block";
+            blueImg.style.display = "block";
+            redImg.style.display = "block";
+            whiteLoading.style.display = "none";
+            blueLoading.style.display = "none";
+            redLoading.style.display = "none";
+            downloadWhite.style.display = "inline-block";
+            downloadBlue.style.display = "inline-block";
+            downloadRed.style.display = "inline-block";
+
             loading.style.display = "none";
-
-            // 滚动到结果区域
-            resultSection.scrollIntoView({ behavior: "smooth" });
           } else {
             throw new Error("API 返回数据格式错误");
           }
         } catch (error) {
           loading.style.display = "none";
+          whiteLoading.textContent = "处理失败";
+          blueLoading.textContent = "处理失败";
+          redLoading.textContent = "处理失败";
           alert(
             "处理失败：" +
               error.message +
