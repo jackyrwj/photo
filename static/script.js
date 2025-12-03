@@ -1,5 +1,5 @@
 // 使用 Cloudflare 代理到 EC2 服务器
-const API_URL = 'https://api.huandise.top';
+const API_URL = 'https://huandise.top';
 
 let selectedFile = null;
 let selectedColor = '#ff0000';
