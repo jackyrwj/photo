@@ -1,7 +1,6 @@
-// Render 部署地址
-const RENDER_API_URL = 'https://photo-wcqh.onrender.com';
-const REQUEST_TIMEOUT = 20000; // 20秒超时
-let useServerProcessing = true; // 标记是否使用服务器处理
+// 纯前端处理配置
+const USE_FRONTEND_ONLY = true; // 使用纯前端方案，不依赖服务器
+const RENDER_API_URL = 'https://photo-wcqh.onrender.com'; // 备用（不使用）
 
 let selectedFile = null;
 let selectedColor = '#ff0000';
@@ -114,142 +113,205 @@ async function autoProcessPresetColors() {
     }
 }
 
-// 处理单个颜色
+// 处理单个颜色 - 纯前端优化版本
 async function processColor(colorInfo) {
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('color', colorInfo.hex);
 
     try {
-        // 使用 Promise.race 实现超时
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-        let response;
-        
-        // 尝试使用服务器处理
-        if (useServerProcessing) {
-            try {
-                response = await fetch(`${RENDER_API_URL}/upload`, {
-                    method: 'POST',
-                    body: formData,
-                    signal: controller.signal
-                });
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    console.warn('Render API 请求超时，切换到前端处理...');
-                    useServerProcessing = false;
-                    clearTimeout(timeoutId);
-                    // 使用纯前端处理
-                    return await procesColorWithCanvas(colorInfo);
-                } else {
-                    // 网络错误，尝试本地服务器
-                    console.warn('Render API 不可用，尝试使用本地服务器...');
-                    try {
-                        response = await fetch('/upload', {
-                            method: 'POST',
-                            body: formData,
-                            signal: controller.signal
-                        });
-                    } catch (e) {
-                        console.warn('本地服务器也不可用，切换到前端处理...');
-                        useServerProcessing = false;
-                        clearTimeout(timeoutId);
-                        return await procesColorWithCanvas(colorInfo);
-                    }
-                }
-            }
-        } else {
-            // 使用纯前端处理
-            clearTimeout(timeoutId);
-            return await procesColorWithCanvas(colorInfo);
-        }
-
-        clearTimeout(timeoutId);
-
-        const data = await response.json();
-
-        if (data.success) {
-            outputFilenames[colorInfo.name] = data.output_file;
-            colorInfo.image.src = `${RENDER_API_URL}/download/${data.output_file}`;
-            colorInfo.image.style.display = 'block';
-            document.getElementById(colorInfo.loading).style.display = 'none';
-            document.getElementById(colorInfo.btn).style.display = 'inline-block';
-        } else {
-            document.getElementById(colorInfo.loading).textContent = '处理失败';
-        }
+        // 直接使用前端处理
+        return await processColorWithCanvas(colorInfo);
     } catch (error) {
-        console.warn('处理失败，使用前端处理：', error.message);
-        useServerProcessing = false;
-        return await procesColorWithCanvas(colorInfo);
+        console.error('处理失败：', error);
+        document.getElementById(colorInfo.loading).textContent = '处理失败';
     }
 }
 
-// 纯前端处理颜色（Canvas 处理）
+// 智能纯前端抠图处理 - 优化版本
 async function procesColorWithCanvas(colorInfo) {
-    try {
-        // 读取图片
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const img = new Image();
-            img.onload = async () => {
-                // 创建 canvas 来处理图片
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
+    return new Promise((resolve) => {
+        try {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // 使用 requestAnimationFrame 避免阻塞
+                    requestAnimationFrame(() => {
+                        const startTime = performance.now();
+                        
+                        // 创建 offscreen canvas
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-                // 绘制原图
-                ctx.drawImage(img, 0, 0);
+                        // 绘制原图
+                        ctx.drawImage(img, 0, 0);
 
-                // 获取像素数据并进行换底色处理
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const data = imageData.data;
+                        // 使用智能抠图算法
+                        smartBackgroundRemoval(ctx, canvas, colorInfo);
 
-                // 解析目标颜色
-                const [r, g, b] = colorInfo.hex.match(/\w\w/g).map(x => parseInt(x, 16));
+                        // 转换为 Blob
+                        canvas.toBlob((blob) => {
+                            const url = URL.createObjectURL(blob);
+                            colorInfo.image.src = url;
+                            colorInfo.image.style.display = 'block';
+                            document.getElementById(colorInfo.loading).style.display = 'none';
+                            document.getElementById(colorInfo.btn).style.display = 'inline-block';
 
-                // 简单的抠图算法：白色/透明背景替换为目标颜色
-                for (let i = 0; i < data.length; i += 4) {
-                    const pixelR = data[i];
-                    const pixelG = data[i + 1];
-                    const pixelB = data[i + 2];
-                    const pixelA = data[i + 3];
+                            // 保存用于下载
+                            const filename = `processed_${colorInfo.name}_${Date.now()}.png`;
+                            outputFilenames[colorInfo.name] = filename;
+                            window[`blob_${colorInfo.name}`] = blob;
 
-                    // 判断是否为背景色（白色或接近白色）
-                    const brightness = (pixelR + pixelG + pixelB) / 3;
-                    if (brightness > 200) { // 白色背景阈值
-                        // 替换为目标颜色
-                        data[i] = r;
-                        data[i + 1] = g;
-                        data[i + 2] = b;
-                        // 保持原有透明度
-                    }
-                }
-
-                ctx.putImageData(imageData, 0, 0);
-
-                // 将结果转换为 Blob 并显示
-                canvas.toBlob((blob) => {
-                    const url = URL.createObjectURL(blob);
-                    colorInfo.image.src = url;
-                    colorInfo.image.style.display = 'block';
-                    document.getElementById(colorInfo.loading).style.display = 'none';
-                    document.getElementById(colorInfo.btn).style.display = 'inline-block';
-
-                    // 保存 Blob 用于下载
-                    const filename = `processed_${colorInfo.name}_${Date.now()}.png`;
-                    outputFilenames[colorInfo.name] = filename;
-                    // 可以将 blob 存储在 sessionStorage 中供后续下载使用
-                    window[`blob_${colorInfo.name}`] = blob;
-                });
+                            const endTime = performance.now();
+                            console.log(`${colorInfo.name} 处理完成，耗时 ${(endTime - startTime).toFixed(0)}ms`);
+                            
+                            resolve();
+                        }, 'image/png', 0.95);
+                    });
+                };
+                img.src = e.target.result;
             };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(selectedFile);
-    } catch (error) {
-        console.error('前端处理失败：', error);
-        document.getElementById(colorInfo.loading).textContent = '处理失败';
+            reader.readAsDataURL(selectedFile);
+        } catch (error) {
+            console.error('前端处理失败：', error);
+            document.getElementById(colorInfo.loading).textContent = '处理失败';
+            resolve();
+        }
+    });
+}
+
+// 智能背景移除 - 高效算法
+function smartBackgroundRemoval(ctx, canvas, colorInfo) {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // 解析目标颜色
+    const [targetR, targetG, targetB] = colorInfo.hex.match(/\w\w/g).map(x => parseInt(x, 16));
+
+    // 第一步：检测背景色（使用图像四个角的平均色）
+    const bgColor = detectBackgroundColor(data, canvas.width, canvas.height);
+
+    // 第二步：进行颜色替换和边缘优化
+    const tolerance = 35; // 色差容差
+    const edgeBuffer = new Uint8Array(data.length / 4); // 边缘缓存
+
+    for (let i = 0; i < data.length; i += 4) {
+        const pixelR = data[i];
+        const pixelG = data[i + 1];
+        const pixelB = data[i + 2];
+        const pixelA = data[i + 3];
+
+        // 计算与背景色的差异
+        const diff = colorDistance(
+            pixelR, pixelG, pixelB,
+            bgColor.r, bgColor.g, bgColor.b
+        );
+
+        const pixelIndex = i / 4;
+
+        if (diff < tolerance) {
+            // 背景像素：替换颜色
+            data[i] = targetR;
+            data[i + 1] = targetG;
+            data[i + 2] = targetB;
+            data[i + 3] = 255;
+            edgeBuffer[pixelIndex] = 0; // 背景
+        } else if (diff < tolerance + 30) {
+            // 边缘像素：混合
+            const alpha = Math.max(0, (diff - tolerance) / 30);
+            data[i] = Math.round(pixelR * alpha + targetR * (1 - alpha));
+            data[i + 1] = Math.round(pixelG * alpha + targetG * (1 - alpha));
+            data[i + 2] = Math.round(pixelB * alpha + targetB * (1 - alpha));
+            data[i + 3] = Math.round(pixelA * alpha + 255 * (1 - alpha));
+            edgeBuffer[pixelIndex] = 1; // 边缘
+        } else {
+            // 前景像素：保持
+            edgeBuffer[pixelIndex] = 2; // 前景
+        }
+    }
+
+    // 第三步：轻微的高斯模糊以平滑边界（可选）
+    smoothEdges(data, edgeBuffer, canvas.width, canvas.height);
+
+    ctx.putImageData(imageData, 0, 0);
+}
+
+// 检测背景色 - 从四个角提取
+function detectBackgroundColor(data, width, height) {
+    const corners = [
+        { x: 0, y: 0 },           // 左上
+        { x: width - 1, y: 0 },   // 右上
+        { x: 0, y: height - 1 },  // 左下
+        { x: width - 1, y: height - 1 } // 右下
+    ];
+
+    let sumR = 0, sumG = 0, sumB = 0;
+
+    for (const corner of corners) {
+        const idx = (corner.y * width + corner.x) * 4;
+        sumR += data[idx];
+        sumG += data[idx + 1];
+        sumB += data[idx + 2];
+    }
+
+    return {
+        r: Math.round(sumR / corners.length),
+        g: Math.round(sumG / corners.length),
+        b: Math.round(sumB / corners.length)
+    };
+}
+
+// 计算颜色距离（使用欧几里得距离）
+function colorDistance(r1, g1, b1, r2, g2, b2) {
+    // 加权距离，考虑人眼对不同颜色的敏感度
+    const dR = (r1 - r2) * 0.3;
+    const dG = (g1 - g2) * 0.59;
+    const dB = (b1 - b2) * 0.11;
+    return Math.sqrt(dR * dR + dG * dG + dB * dB);
+}
+
+// 平滑边界 - 轻微模糊
+function smoothEdges(data, edgeBuffer, width, height) {
+    const radius = 1;
+    const kernel = [1, 2, 1, 2, 4, 2, 1, 2, 1];
+    const kernelWeight = 16;
+
+    for (let i = 0; i < edgeBuffer.length; i++) {
+        if (edgeBuffer[i] !== 1) continue; // 只处理边缘像素
+
+        const y = Math.floor(i / width);
+        const x = i % width;
+
+        let sumR = 0, sumG = 0, sumB = 0, sumA = 0, count = 0;
+        let kernelIdx = 0;
+
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const ny = y + dy;
+                const nx = x + dx;
+
+                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                    const idx = (ny * width + nx) * 4;
+                    const weight = kernel[kernelIdx];
+
+                    sumR += data[idx] * weight;
+                    sumG += data[idx + 1] * weight;
+                    sumB += data[idx + 2] * weight;
+                    sumA += data[idx + 3] * weight;
+                    count += weight;
+                }
+                kernelIdx++;
+            }
+        }
+
+        const pixelIdx = i * 4;
+        data[pixelIdx] = Math.round(sumR / count);
+        data[pixelIdx + 1] = Math.round(sumG / count);
+        data[pixelIdx + 2] = Math.round(sumB / count);
+        data[pixelIdx + 3] = Math.round(sumA / count);
     }
 }
 
@@ -303,67 +365,11 @@ processBtn.addEventListener('click', async () => {
 
     loading.style.display = 'flex';
 
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('color', selectedColor);
-
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-        let response;
-        
-        if (useServerProcessing) {
-            try {
-                response = await fetch(`${RENDER_API_URL}/upload`, {
-                    method: 'POST',
-                    body: formData,
-                    signal: controller.signal
-                });
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    console.warn('Render API 请求超时，切换到前端处理...');
-                    useServerProcessing = false;
-                    clearTimeout(timeoutId);
-                    return await processCustomColorWithCanvas();
-                } else {
-                    console.warn('Render API 不可用，尝试本地服务器...');
-                    try {
-                        response = await fetch('/upload', {
-                            method: 'POST',
-                            body: formData,
-                            signal: controller.signal
-                        });
-                    } catch (e) {
-                        console.warn('本地服务器也不可用，切换到前端处理...');
-                        useServerProcessing = false;
-                        clearTimeout(timeoutId);
-                        return await processCustomColorWithCanvas();
-                    }
-                }
-            }
-        } else {
-            clearTimeout(timeoutId);
-            return await processCustomColorWithCanvas();
-        }
-
-        clearTimeout(timeoutId);
-
-        const data = await response.json();
-
-        if (data.success) {
-            outputFilenames.custom = data.output_file;
-            customOriginalImage.src = originalImage.src;
-            customResultImage.src = `${RENDER_API_URL}/download/${data.output_file}`;
-            customResultSection.style.display = 'block';
-            customResultSection.scrollIntoView({ behavior: 'smooth' });
-        } else {
-            alert('处理失败: ' + (data.error || '未知错误'));
-        }
+        await processCustomColorWithCanvas();
     } catch (error) {
-        console.warn('处理失败，使用前端处理：', error.message);
-        useServerProcessing = false;
-        return await processCustomColorWithCanvas();
+        console.error('处理失败:', error.message);
+        alert('处理失败: ' + error.message);
     } finally {
         loading.style.display = 'none';
     }
@@ -371,63 +377,54 @@ processBtn.addEventListener('click', async () => {
 
 // 纯前端处理自定义颜色
 async function processCustomColorWithCanvas() {
-    try {
-        loading.style.display = 'flex';
+    return new Promise((resolve) => {
+        try {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    requestAnimationFrame(() => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
 
-                ctx.drawImage(img, 0, 0);
+                        // 构建颜色信息对象
+                        const colorInfo = {
+                            name: 'custom',
+                            hex: selectedColor,
+                            image: customResultImage,
+                            loading: 'customLoading',
+                            btn: 'downloadCustom'
+                        };
 
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const data = imageData.data;
+                        smartBackgroundRemoval(ctx, canvas, colorInfo);
 
-                // 解析目标颜色
-                const [r, g, b] = selectedColor.match(/\w\w/g).map(x => parseInt(x, 16));
+                        canvas.toBlob((blob) => {
+                            const url = URL.createObjectURL(blob);
+                            customOriginalImage.src = originalImage.src;
+                            customResultImage.src = url;
+                            customResultSection.style.display = 'block';
+                            customResultSection.scrollIntoView({ behavior: 'smooth' });
 
-                // 替换背景色
-                for (let i = 0; i < data.length; i += 4) {
-                    const pixelR = data[i];
-                    const pixelG = data[i + 1];
-                    const pixelB = data[i + 2];
+                            outputFilenames.custom = `processed_custom_${Date.now()}.png`;
+                            window['blob_custom'] = blob;
 
-                    const brightness = (pixelR + pixelG + pixelB) / 3;
-                    if (brightness > 200) {
-                        data[i] = r;
-                        data[i + 1] = g;
-                        data[i + 2] = b;
-                    }
-                }
-
-                ctx.putImageData(imageData, 0, 0);
-
-                canvas.toBlob((blob) => {
-                    const url = URL.createObjectURL(blob);
-                    customOriginalImage.src = originalImage.src;
-                    customResultImage.src = url;
-                    customResultSection.style.display = 'block';
-                    customResultSection.scrollIntoView({ behavior: 'smooth' });
-
-                    outputFilenames.custom = `processed_custom_${Date.now()}.png`;
-                    window['blob_custom'] = blob;
-
-                    loading.style.display = 'none';
-                });
+                            resolve();
+                        }, 'image/png', 0.95);
+                    });
+                };
+                img.src = e.target.result;
             };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(selectedFile);
-    } catch (error) {
-        console.error('前端处理失败：', error);
-        alert('处理失败: ' + error.message);
-        loading.style.display = 'none';
-    }
+            reader.readAsDataURL(selectedFile);
+        } catch (error) {
+            console.error('前端处理失败：', error);
+            alert('处理失败: ' + error.message);
+            resolve();
+        }
+    });
 }
 
 // 下载按钮
