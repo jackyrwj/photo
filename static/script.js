@@ -115,16 +115,16 @@ async function autoProcessPresetColors() {
 
 // 处理单个颜色 - 纯前端优化版本
 async function processColor(colorInfo) {
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('color', colorInfo.hex);
-
     try {
         // 直接使用前端处理
         return await processColorWithCanvas(colorInfo);
     } catch (error) {
-        console.error('处理失败：', error);
-        document.getElementById(colorInfo.loading).textContent = '处理失败';
+        console.error(`${colorInfo.name} 处理失败：`, error);
+        const loadingEl = document.getElementById(colorInfo.loading);
+        if (loadingEl) {
+            loadingEl.textContent = '处理失败';
+            loadingEl.style.display = 'flex';
+        }
     }
 }
 
@@ -188,8 +188,16 @@ function smartBackgroundRemoval(ctx, canvas, colorInfo) {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
-    // 解析目标颜色
-    const [targetR, targetG, targetB] = colorInfo.hex.match(/\w\w/g).map(x => parseInt(x, 16));
+    // 解析目标颜色 - 改进的正则表达式
+    const hexColor = colorInfo.hex.replace('#', '');
+    const targetR = parseInt(hexColor.substring(0, 2), 16);
+    const targetG = parseInt(hexColor.substring(2, 4), 16);
+    const targetB = parseInt(hexColor.substring(4, 6), 16);
+
+    if (isNaN(targetR) || isNaN(targetG) || isNaN(targetB)) {
+        console.error('无效的颜色值:', colorInfo.hex);
+        throw new Error('颜色解析失败');
+    }
 
     // 第一步：检测背景色（使用图像四个角的平均色）
     const bgColor = detectBackgroundColor(data, canvas.width, canvas.height);

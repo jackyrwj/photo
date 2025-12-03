@@ -1,0 +1,446 @@
+<!-- 调试诊断页面 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照片处理 - 诊断工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #252526;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        h1 { color: #4ec9b0; margin-bottom: 20px; }
+        h2 { color: #9cdcfe; margin: 20px 0 10px; }
+        .log-box {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            border-left: 3px solid #4ec9b0;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .log-entry.error { 
+            background: #3d2626;
+            color: #f48771;
+        }
+        .log-entry.success { 
+            background: #263d26;
+            color: #89d185;
+        }
+        .log-entry.info { 
+            background: #263d3d;
+            color: #6a9fb5;
+        }
+        .log-entry.warn { 
+            background: #3d3d26;
+            color: #dcdcaa;
+        }
+        .test-btn {
+            background: #4ec9b0;
+            color: #1e1e1e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+            font-weight: bold;
+        }
+        .test-btn:hover { background: #6bb5a5; }
+        .test-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .status.ok { 
+            background: #263d26;
+            border: 1px solid #89d185;
+            color: #89d185;
+        }
+        .status.error { 
+            background: #3d2626;
+            border: 1px solid #f48771;
+            color: #f48771;
+        }
+        #fileInput { display: none; }
+        .file-info {
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 照片处理诊断工具</h1>
+        
+        <h2>系统检查</h2>
+        <div id="systemStatus"></div>
+        
+        <h2>测试工具</h2>
+        <div>
+            <button class="test-btn" onclick="testColorParsing()">测试颜色解析</button>
+            <button class="test-btn" onclick="testCanvasAPI()">测试 Canvas API</button>
+            <button class="test-btn" onclick="testImageProcessing()">测试图片处理</button>
+            <input type="file" id="fileInput" accept="image/*">
+            <button class="test-btn" onclick="document.getElementById('fileInput').click()">选择图片测试</button>
+            <button class="test-btn" onclick="testAutoProcessing()">测试自动处理</button>
+            <button class="test-btn" onclick="clearLogs()">清空日志</button>
+        </div>
+        
+        <h2>实时日志</h2>
+        <div class="log-box" id="logBox"></div>
+        
+        <h2>选中的文件</h2>
+        <div id="fileInfo"></div>
+    </div>
+
+    <script>
+        // 日志系统
+        class Logger {
+            constructor() {
+                this.logs = [];
+                this.box = document.getElementById('logBox');
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = `[${timestamp}] ${message}`;
+                this.logs.push({ message: entry, type });
+                this.render();
+                console.log(`[${type.toUpperCase()}]`, message);
+            }
+
+            info(msg) { this.log(msg, 'info'); }
+            success(msg) { this.log(msg, 'success'); }
+            error(msg) { this.log(msg, 'error'); }
+            warn(msg) { this.log(msg, 'warn'); }
+
+            render() {
+                this.box.innerHTML = this.logs.map(l => 
+                    `<div class="log-entry ${l.type}">${l.message}</div>`
+                ).join('');
+                this.box.scrollTop = this.box.scrollHeight;
+            }
+
+            clear() {
+                this.logs = [];
+                this.render();
+            }
+        }
+
+        const logger = new Logger();
+
+        // 系统检查
+        function checkSystem() {
+            logger.info('开始系统检查...');
+            
+            const checks = {
+                'Canvas 支持': () => {
+                    const canvas = document.createElement('canvas');
+                    return !!canvas.getContext;
+                },
+                'FileReader 支持': () => typeof FileReader !== 'undefined',
+                'Blob 支持': () => typeof Blob !== 'undefined',
+                '图片 API 支持': () => {
+                    const img = new Image();
+                    return typeof img.onload === 'function';
+                },
+                'requestAnimationFrame 支持': () => typeof requestAnimationFrame === 'function',
+                'Uint8Array 支持': () => typeof Uint8Array !== 'undefined',
+            };
+
+            let allOk = true;
+            for (const [name, check] of Object.entries(checks)) {
+                try {
+                    const result = check();
+                    if (result) {
+                        logger.success(`✓ ${name}`);
+                    } else {
+                        logger.error(`✗ ${name}`);
+                        allOk = false;
+                    }
+                } catch (e) {
+                    logger.error(`✗ ${name}: ${e.message}`);
+                    allOk = false;
+                }
+            }
+
+            const statusDiv = document.getElementById('systemStatus');
+            if (allOk) {
+                statusDiv.className = 'status ok';
+                statusDiv.textContent = '✓ 所有系统检查通过，可以正常使用';
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '✗ 部分功能不支持，请升级浏览器';
+            }
+        }
+
+        // 测试颜色解析
+        function testColorParsing() {
+            logger.info('测试颜色解析...');
+            
+            const testColors = ['#ffffff', '#2196F3', '#ff0000', '#123456'];
+            
+            for (const color of testColors) {
+                try {
+                    const hexColor = color.replace('#', '');
+                    const r = parseInt(hexColor.substring(0, 2), 16);
+                    const g = parseInt(hexColor.substring(2, 4), 16);
+                    const b = parseInt(hexColor.substring(4, 6), 16);
+                    
+                    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+                        logger.error(`✗ ${color} 解析失败`);
+                    } else {
+                        logger.success(`✓ ${color} -> RGB(${r},${g},${b})`);
+                    }
+                } catch (e) {
+                    logger.error(`✗ ${color}: ${e.message}`);
+                }
+            }
+        }
+
+        // 测试 Canvas API
+        function testCanvasAPI() {
+            logger.info('测试 Canvas API...');
+            
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 100;
+                canvas.height = 100;
+                
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                if (!ctx) throw new Error('无法获取 Canvas 2D Context');
+                
+                logger.success('✓ Canvas 创建成功');
+                
+                // 绘制测试
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(0, 0, 100, 100);
+                logger.success('✓ fillRect 可用');
+                
+                // 获取图像数据
+                const imageData = ctx.getImageData(0, 0, 100, 100);
+                logger.success(`✓ getImageData 可用，获取 ${imageData.data.length} 字节数据`);
+                
+                // 转换 Blob
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        logger.success(`✓ toBlob 可用，生成 ${(blob.size / 1024).toFixed(2)} KB`);
+                    } else {
+                        logger.error('✗ toBlob 返回空');
+                    }
+                });
+            } catch (e) {
+                logger.error(`✗ Canvas API 测试失败: ${e.message}`);
+            }
+        }
+
+        // 测试图片处理
+        function testImageProcessing() {
+            logger.info('创建测试图片...');
+            
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 200;
+                canvas.height = 200;
+                const ctx = canvas.getContext('2d');
+                
+                // 绘制简单的背景 + 人物模拟
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 200, 200);
+                
+                ctx.fillStyle = '#ffdbac';
+                ctx.fillRect(50, 30, 100, 80); // 脸部
+                
+                logger.success('✓ 测试图片创建成功');
+                
+                // 进行简单的颜色替换
+                logger.info('进行颜色替换 (白色 -> 蓝色)...');
+                
+                const imageData = ctx.getImageData(0, 0, 200, 200);
+                const data = imageData.data;
+                
+                let replacedCount = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    
+                    // 检查是否为白色 (R>200, G>200, B>200)
+                    if (r > 200 && g > 200 && b > 200) {
+                        data[i] = 33;     // #2196F3 = RGB(33, 150, 243)
+                        data[i + 1] = 150;
+                        data[i + 2] = 243;
+                        replacedCount++;
+                    }
+                }
+                
+                logger.success(`✓ 替换了 ${replacedCount} 个像素`);
+                
+                ctx.putImageData(imageData, 0, 0);
+                
+                // 显示结果
+                canvas.toBlob((blob) => {
+                    logger.success(`✓ 处理完成，大小 ${(blob.size / 1024).toFixed(2)} KB`);
+                });
+            } catch (e) {
+                logger.error(`✗ 图片处理失败: ${e.message}`);
+            }
+        }
+
+        // 文件选择处理
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const fileInfo = document.getElementById('fileInfo');
+                fileInfo.innerHTML = `
+                    <div class="file-info">
+                        <strong>文件名:</strong> ${file.name}<br>
+                        <strong>大小:</strong> ${(file.size / 1024).toFixed(2)} KB<br>
+                        <strong>类型:</strong> ${file.type}<br>
+                        <strong>最后修改:</strong> ${new Date(file.lastModified).toLocaleString()}
+                    </div>
+                `;
+                
+                logger.success(`✓ 选择文件: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+                testAutoProcessing();
+            }
+        });
+
+        // 自动处理测试
+        function testAutoProcessing() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) {
+                logger.error('✗ 请先选择图片文件');
+                return;
+            }
+
+            logger.info('开始测试图片处理...');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                logger.info('✓ FileReader 读取成功');
+                
+                const img = new Image();
+                img.onload = () => {
+                    logger.success(`✓ 图片加载成功 (${img.width}x${img.height})`);
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                    
+                    ctx.drawImage(img, 0, 0);
+                    logger.success('✓ 图片绘制到 Canvas');
+                    
+                    const startTime = performance.now();
+                    
+                    // 模拟颜色替换
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    
+                    // 检测背景色 (四个角)
+                    const corners = [
+                        { x: 0, y: 0 },
+                        { x: canvas.width - 1, y: 0 },
+                        { x: 0, y: canvas.height - 1 },
+                        { x: canvas.width - 1, y: canvas.height - 1 }
+                    ];
+                    
+                    let sumR = 0, sumG = 0, sumB = 0;
+                    for (const corner of corners) {
+                        const idx = (corner.y * canvas.width + corner.x) * 4;
+                        sumR += data[idx];
+                        sumG += data[idx + 1];
+                        sumB += data[idx + 2];
+                    }
+                    
+                    const bgR = Math.round(sumR / corners.length);
+                    const bgG = Math.round(sumG / corners.length);
+                    const bgB = Math.round(sumB / corners.length);
+                    
+                    logger.success(`✓ 检测背景色: RGB(${bgR}, ${bgG}, ${bgB})`);
+                    
+                    // 颜色替换
+                    let replacedCount = 0;
+                    const targetR = 33, targetG = 150, targetB = 243; // 蓝色
+                    
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        
+                        const diff = Math.sqrt(
+                            Math.pow(r - bgR, 2) + 
+                            Math.pow(g - bgG, 2) + 
+                            Math.pow(b - bgB, 2)
+                        );
+                        
+                        if (diff < 35) {
+                            data[i] = targetR;
+                            data[i + 1] = targetG;
+                            data[i + 2] = targetB;
+                            replacedCount++;
+                        }
+                    }
+                    
+                    logger.success(`✓ 替换了 ${replacedCount} 个像素 (${(replacedCount / (canvas.width * canvas.height) * 100).toFixed(1)}%)`);
+                    
+                    ctx.putImageData(imageData, 0, 0);
+                    
+                    canvas.toBlob((blob) => {
+                        const endTime = performance.now();
+                        logger.success(`✓ 处理完成！耗时 ${(endTime - startTime).toFixed(0)}ms，输出大小 ${(blob.size / 1024).toFixed(2)} KB`);
+                    });
+                };
+                
+                img.onerror = () => {
+                    logger.error('✗ 图片加载失败');
+                };
+                
+                img.src = e.target.result;
+            };
+            
+            reader.onerror = () => {
+                logger.error('✗ FileReader 读取失败');
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        function clearLogs() {
+            logger.clear();
+            logger.info('日志已清空');
+        }
+
+        // 初始化
+        window.addEventListener('load', () => {
+            logger.info('诊断工具已加载');
+            checkSystem();
+        });
+    </script>
+</body>
+</html>

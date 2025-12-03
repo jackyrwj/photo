@@ -1189,8 +1189,11 @@
         const imageData = ctx.getImageData(0, 0, width, height);
         const data = imageData.data;
 
-        // 解析目标颜色
-        const [targetR, targetG, targetB] = targetHexColor.match(/\w\w/g).map(x => parseInt(x, 16));
+        // 解析目标颜色 - 改进的方式
+        const hexColor = targetHexColor.replace('#', '');
+        const targetR = parseInt(hexColor.substring(0, 2), 16);
+        const targetG = parseInt(hexColor.substring(2, 4), 16);
+        const targetB = parseInt(hexColor.substring(4, 6), 16);
 
         // 检测背景色（从四个角）
         const bgColor = detectBgColor(data, width, height);
