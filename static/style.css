@@ -296,6 +296,12 @@ body {
     font-size: 18px;
 }
 
+.upload-text {
+    display: inline-block;
+    width: 100%;
+    cursor: pointer;
+}
+
 .color-section {
     margin-bottom: 20px;
     padding: 20px;
