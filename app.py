@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, request, send_file, jsonify, send_from_directory
 import os
 import cv2 as cv
 import numpy as np
@@ -20,6 +20,17 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+
+# 主页路由 - 直接返回 HTML（不使用模板）
+@app.route('/')
+def index():
+    return send_from_directory('templates', 'index.html')
+
+
+@app.route('/crop')
+def crop():
+    return send_from_directory('.', 'crop.html')
 
 
 def allowed_file(filename):
