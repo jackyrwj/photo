@@ -1123,6 +1123,11 @@
         });
       }
 
+      // Render 部署地址
+      const RENDER_API_URL = 'https://photo-wcqh.onrender.com';
+      const REQUEST_TIMEOUT = 20000; // 20秒超时
+      let useServerProcessing = true; // 标记是否使用服务器处理
+
       // 纯前端处理所有颜色
       async function processAllColors() {
         loading.style.display = "flex";
@@ -1130,10 +1135,24 @@
         // 显示原图
         document.getElementById("originalImage").src = uploadedImage.src;
 
-        // 处理三种颜色
-        await processColor("#ffffff", "white");
-        await processColor("#2196F3", "blue");
-        await processColor("#ff0000", "red");
+        // 尝试使用服务器处理
+        if (useServerProcessing) {
+          try {
+            await processColorsWithServer();
+          } catch (error) {
+            console.warn("服务器处理失败，回到前端处理：", error.message);
+            useServerProcessing = false;
+            // 继续使用前端处理
+            await processColor("#ffffff", "white");
+            await processColor("#2196F3", "blue");
+            await processColor("#ff0000", "red");
+          }
+        } else {
+          // 直接使用前端处理
+          await processColor("#ffffff", "white");
+          await processColor("#2196F3", "blue");
+          await processColor("#ff0000", "red");
+        }
 
         // 显示结果
         document.getElementById("whiteImage").src = processedImages.white;
@@ -1145,6 +1164,62 @@
 
         // 滚动到结果区域
         resultSection.scrollIntoView({ behavior: "smooth" });
+      }
+
+      // 使用服务器处理三种颜色
+      async function processColorsWithServer() {
+        const colors = [
+          { name: 'white', hex: '#ffffff', id: 'whiteImage' },
+          { name: 'blue', hex: '#2196F3', id: 'blueImage' },
+          { name: 'red', hex: '#ff0000', id: 'redImage' }
+        ];
+
+        // 并行发送所有请求
+        const promises = colors.map(async (color) => {
+          const formData = new FormData();
+          formData.append('file', uploadedFile);
+          formData.append('color', color.hex);
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+          try {
+            const response = await fetch(`${RENDER_API_URL}/upload`, {
+              method: 'POST',
+              body: formData,
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.success) {
+              processedImages[color.name] = `${RENDER_API_URL}/download/${data.output_file}`;
+              return { success: true, name: color.name };
+            } else {
+              throw new Error(data.error || '处理失败');
+            }
+          } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+              throw new Error(`${color.name} 颜色处理超时`);
+            }
+            throw error;
+          }
+        });
+
+        // 等待所有颜色处理完成
+        const results = await Promise.allSettled(promises);
+        
+        // 检查是否所有请求都失败
+        const allFailed = results.every(r => r.status === 'rejected');
+        if (allFailed) {
+          throw new Error('所有服务器请求都失败');
+        }
       }
 
       // 处理单个颜色
