@@ -1,5 +1,5 @@
-// API 地址（空字符串表示使用当前服务器）
-const API_URL = '';
+// 使用 Cloudflare Worker 代理到 EC2 服务器
+const API_URL = 'https://restless-brook-03d5.raowenjieszu.workers.dev';
 
 let selectedFile = null;
 let selectedColor = '#ff0000';
