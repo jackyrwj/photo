@@ -129,13 +129,3 @@ IDPhotos/
 ## 📄 License
 
 MIT License
-
-## 👨‍💻 作者
-
-jackyrwj
-
-## 🙏 致谢
-
-- 原始命令行版本参考自微信公众号：搬运代码吧
-- 使用 OpenCV 进行图像处理
-- 使用 Flask 构建 Web 应用
