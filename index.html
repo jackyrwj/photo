@@ -1351,6 +1351,17 @@
         link.download = filename;
         link.click();
       }
+
+      // 初始化时检查系统
+      window.addEventListener('load', () => {
+        console.log('=== 系统初始化检查 ===');
+        console.log('Canvas 支持:', !!document.createElement('canvas').getContext('2d'));
+        console.log('FileReader 支持:', typeof FileReader !== 'undefined');
+        console.log('requestAnimationFrame:', typeof requestAnimationFrame !== 'undefined');
+        console.log('上传区元素:', !!uploadedImage);
+        console.log('Canvas 元素:', !!canvas);
+        console.log('=== 初始化完成 ===');
+      });
     </script>
   </body>
 </html>

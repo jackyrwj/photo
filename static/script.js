@@ -108,9 +108,11 @@ async function autoProcessPresetColors() {
         { name: 'red', hex: '#ff0000', image: redImage, loading: 'redLoading', btn: 'downloadRed' }
     ];
 
-    for (const color of colors) {
-        processColor(color);
-    }
+    // 并行处理，使用 Promise.allSettled 确保所有都完成
+    const promises = colors.map(color => processColor(color));
+    await Promise.allSettled(promises);
+    
+    console.log('三种颜色处理完成');
 }
 
 // 处理单个颜色 - 纯前端优化版本
