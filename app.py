@@ -1,65 +1,78 @@
-from flask import Flask, request, jsonify, send_from_directory, send_file
-import cv2
-import numpy as np
+from flask import Flask, render_template, request, send_file, jsonify, send_from_directory
 import os
+import cv2 as cv
+import numpy as np
+from werkzeug.utils import secure_filename
 import uuid
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 
-# 输出目录
-OUTPUT_FOLDER = 'output'
+# 配置
+UPLOAD_FOLDER = 'uploads'
+OUTPUT_FOLDER = 'outputs'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+# 确保文件夹存在
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['OUTPUT_FOLDER'] = OUTPUT_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def hex_to_bgr(hex_color):
-    """将十六进制颜色转换为BGR格式"""
+    """将十六进制颜色转换为 BGR 格式"""
     hex_color = hex_color.lstrip('#')
-    r = int(hex_color[0:2], 16)
-    g = int(hex_color[2:4], 16)
-    b = int(hex_color[4:6], 16)
-    return (b, g, r)
+    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    return [b, g, r]  # OpenCV 使用 BGR 格式
 
 
-def change_background(image, target_color_bgr):
-    """使用K-means聚类进行背景替换"""
-    # 转换为RGB用于处理
-    img_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+def change_background_color(image_path, bg_color_hex):
+    """更换证件照背景颜色 - 使用 OpenCV K-means 4类聚类"""
+    # 读入数据
+    image = cv.imread(image_path)
+    if image is None:
+        raise ValueError("无法读取图片")
 
-    # 重塑图像用于K-means
-    pixels = img_rgb.reshape(-1, 3).astype(np.float32)
+    h, w, ch = image.shape
 
-    # K-means聚类
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-    k = 2
-    _, labels, centers = cv2.kmeans(pixels, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    data = image.reshape((-1, 3))
+    data = np.float32(data)
 
-    # 找出背景类（假设四个角的颜色是背景）
-    h, w = image.shape[:2]
-    corner_indices = [0, w-1, (h-1)*w, h*w-1]
-    corner_labels = [labels[i][0] for i in corner_indices]
-    bg_label = max(set(corner_labels), key=corner_labels.count)
+    # 设置聚类 - 使用4类聚类，效果更好
+    criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    num_clusters = 4
+    _, label, _ = cv.kmeans(data, num_clusters, None, criteria, num_clusters, cv.KMEANS_RANDOM_CENTERS)
 
-    # 创建mask
-    mask = (labels.reshape(h, w) == bg_label).astype(np.uint8) * 255
+    # 找到背景像素的类别（使用左上角像素）
+    indx = label[0][0]
 
-    # 形态学操作平滑mask
-    kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    # 生成掩膜
+    mask = np.ones((h, w), dtype=np.uint8) * 255
+    label = np.reshape(label, (h, w))
+    mask[label == indx] = 0
 
-    # 高斯模糊边缘
-    mask_blur = cv2.GaussianBlur(mask, (5, 5), 0)
+    # 处理掩膜 - 腐蚀和高斯模糊
+    se = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
+    cv.erode(mask, se, mask)
+    mask = cv.GaussianBlur(mask, (5, 5), 0)
 
-    # 创建新背景
-    new_bg = np.full_like(image, target_color_bgr, dtype=np.uint8)
+    # 转换背景颜色
+    bg_color = hex_to_bgr(bg_color_hex)
+    bg = np.tile(bg_color, (h, w, 1))
 
-    # 混合
-    alpha = mask_blur.astype(float) / 255.0
-    alpha = np.stack([alpha] * 3, axis=-1)
+    # 融合图像
+    alpha = mask.astype(np.float32) / 255
+    fg = alpha[..., None] * image
+    bg_part = (1 - alpha[..., None]) * bg
+    new_image = fg + bg_part
 
-    result = (new_bg * alpha + image * (1 - alpha)).astype(np.uint8)
-
-    return result
+    return new_image.astype(np.uint8)
 
 
 @app.route('/')
@@ -75,47 +88,58 @@ def index_html():
 
 
 @app.route('/upload', methods=['POST'])
-def upload():
+def upload_file():
     """处理图片上传和背景替换"""
     if 'file' not in request.files:
-        return jsonify({'success': False, 'error': '没有上传文件'}), 400
+        return jsonify({'success': False, 'error': '没有文件'}), 400
 
     file = request.files['file']
-    color = request.form.get('color', '#ffffff')
+    bg_color = request.form.get('color', '#ff0000')
 
     if file.filename == '':
-        return jsonify({'success': False, 'error': '文件名为空'}), 400
+        return jsonify({'success': False, 'error': '没有选择文件'}), 400
 
-    try:
-        # 读取图片
-        file_bytes = np.frombuffer(file.read(), np.uint8)
-        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    if file and allowed_file(file.filename):
+        # 生成唯一文件名
+        unique_id = str(uuid.uuid4())
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        input_filename = f"{unique_id}_input.{ext}"
+        output_filename = f"{unique_id}_output.png"
 
-        if image is None:
-            return jsonify({'success': False, 'error': '无法读取图片'}), 400
+        input_path = os.path.join(app.config['UPLOAD_FOLDER'], input_filename)
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
 
-        # 转换颜色并处理
-        target_bgr = hex_to_bgr(color)
-        result = change_background(image, target_bgr)
+        # 保存上传的文件
+        file.save(input_path)
 
-        # 保存结果
-        output_filename = f"{uuid.uuid4().hex}.png"
-        output_path = os.path.join(OUTPUT_FOLDER, output_filename)
-        cv2.imwrite(output_path, result)
+        try:
+            # 处理图片
+            result_image = change_background_color(input_path, bg_color)
+            cv.imwrite(output_path, result_image)
 
-        return jsonify({
-            'success': True,
-            'output_file': output_filename
-        })
+            # 删除上传的文件以节省空间
+            os.remove(input_path)
 
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+            return jsonify({
+                'success': True,
+                'output_file': output_filename
+            })
+        except Exception as e:
+            # 清理文件
+            if os.path.exists(input_path):
+                os.remove(input_path)
+            return jsonify({'success': False, 'error': f'处理图片时出错: {str(e)}'}), 500
+
+    return jsonify({'success': False, 'error': '不支持的文件格式'}), 400
 
 
 @app.route('/download/<filename>')
-def download(filename):
+def download_file(filename):
     """下载处理后的图片"""
-    return send_from_directory(OUTPUT_FOLDER, filename)
+    file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True, download_name=f'证件照_{filename}')
+    return jsonify({'error': '文件不存在'}), 404
 
 
 @app.route('/crop')
