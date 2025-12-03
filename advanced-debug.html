@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深度诊断 - 处理失败排查</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #0d1117;
+        }
+        h1 {
+            color: #58a6ff;
+            margin: 20px 0 10px;
+            border-bottom: 2px solid #30363d;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #79c0ff;
+            font-size: 16px;
+            margin: 15px 0 8px;
+        }
+        .section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .test-btn {
+            background: #238636;
+            color: #fff;
+            border: 1px solid #2ea043;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+            font-family: inherit;
+            font-weight: bold;
+        }
+        .test-btn:hover { background: #2ea043; }
+        .test-btn:active { transform: scale(0.98); }
+        .log {
+            background: #010409;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .log-line {
+            padding: 2px 0;
+            margin: 2px 0;
+            border-radius: 3px;
+            padding-left: 8px;
+        }
+        .log-error {
+            background: #3d2626;
+            color: #f85149;
+            border-left: 3px solid #f85149;
+        }
+        .log-success {
+            background: #1a3a1a;
+            color: #3fb950;
+            border-left: 3px solid #3fb950;
+        }
+        .log-info {
+            background: #1c2d3d;
+            color: #58a6ff;
+            border-left: 3px solid #58a6ff;
+        }
+        .log-warn {
+            background: #3d3d26;
+            color: #d29922;
+            border-left: 3px solid #d29922;
+        }
+        input[type="file"] { display: none; }
+        .file-info {
+            background: #010409;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 0 4px;
+        }
+        .status.ok {
+            background: #238636;
+            color: #fff;
+        }
+        .status.error {
+            background: #da3633;
+            color: #fff;
+        }
+        .step {
+            background: #0d1117;
+            border-left: 4px solid #58a6ff;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        .step-title {
+            color: #58a6ff;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        .step-desc {
+            color: #8b949e;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 深度诊断 - 处理失败排查</h1>
+        
+        <div class="section">
+            <h2>📋 快速检查</h2>
+            <button class="test-btn" onclick="runQuickCheck()">运行快速检查</button>
+            <button class="test-btn" onclick="clearLogs()">清空日志</button>
+            <div class="log" id="quickLog"></div>
+        </div>
+
+        <div class="section">
+            <h2>🔧 详细诊断</h2>
+            <button class="test-btn" onclick="testImageUpload()">测试文件上传</button>
+            <button class="test-btn" onclick="testCanvasProcessing()">测试 Canvas 处理</button>
+            <button class="test-btn" onclick="testColorParsing()">测试颜色解析</button>
+            <button class="test-btn" onclick="testBlobCreation()">测试 Blob 创建</button>
+            <input type="file" id="testFile" accept="image/*">
+            <button class="test-btn" onclick="document.getElementById('testFile').click()">选择图片测试</button>
+            <div class="log" id="detailLog"></div>
+        </div>
+
+        <div class="section">
+            <h2>📊 处理流程追踪</h2>
+            <button class="test-btn" onclick="testFullPipeline()">完整处理流程测试</button>
+            <div class="log" id="pipelineLog"></div>
+        </div>
+
+        <div class="section">
+            <h2>💡 调试步骤</h2>
+            <div class="step">
+                <div class="step-title">第1步：快速检查</div>
+                <div class="step-desc">点击"运行快速检查"验证浏览器支持</div>
+            </div>
+            <div class="step">
+                <div class="step-title">第2步：选择图片</div>
+                <div class="step-desc">点击"选择图片测试"上传一张小证件照</div>
+            </div>
+            <div class="step">
+                <div class="step-title">第3步：运行完整测试</div>
+                <div class="step-desc">点击"完整处理流程测试"模拟完整处理</div>
+            </div>
+            <div class="step">
+                <div class="step-title">第4步：检查日志</div>
+                <div class="step-desc">查看日志中的错误信息，找出问题所在</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testFile = null;
+        let logs = {
+            quick: [],
+            detail: [],
+            pipeline: []
+        };
+
+        function log(type, message, category = 'detail') {
+            const timestamp = new Date().toLocaleTimeString();
+            const line = `[${timestamp}] ${message}`;
+            logs[category].push({ message: line, type });
+            renderLogs(category);
+        }
+
+        function renderLogs(category) {
+            const logEl = document.getElementById(`${category}Log`);
+            logEl.innerHTML = logs[category].map(l => 
+                `<div class="log-line log-${l.type}">${l.message}</div>`
+            ).join('');
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLogs() {
+            logs = { quick: [], detail: [], pipeline: [] };
+            ['quick', 'detail', 'pipeline'].forEach(c => renderLogs(c));
+        }
+
+        // 快速检查
+        function runQuickCheck() {
+            logs.quick = [];
+            const checks = [
+                ['Canvas API', () => !!document.createElement('canvas').getContext('2d')],
+                ['Canvas willReadFrequently', () => {
+                    const c = document.createElement('canvas');
+                    const ctx = c.getContext('2d', { willReadFrequently: true });
+                    return !!ctx;
+                }],
+                ['FileReader API', () => typeof FileReader !== 'undefined'],
+                ['Blob API', () => typeof Blob !== 'undefined'],
+                ['URL.createObjectURL', () => typeof URL.createObjectURL === 'function'],
+                ['Image API', () => typeof Image !== 'undefined'],
+                ['requestAnimationFrame', () => typeof requestAnimationFrame === 'function'],
+                ['Uint8Array', () => typeof Uint8Array !== 'undefined'],
+                ['Promise', () => typeof Promise !== 'undefined'],
+            ];
+
+            let allPass = true;
+            for (const [name, test] of checks) {
+                try {
+                    const result = test();
+                    if (result) {
+                        log('success', `✓ ${name}`, 'quick');
+                    } else {
+                        log('error', `✗ ${name} - 返回 false`, 'quick');
+                        allPass = false;
+                    }
+                } catch (e) {
+                    log('error', `✗ ${name} - ${e.message}`, 'quick');
+                    allPass = false;
+                }
+            }
+
+            if (allPass) {
+                log('success', '✓ 所有检查通过，浏览器支持完整', 'quick');
+            } else {
+                log('warn', '⚠ 某些功能不支持，请使用 Chrome 或 Firefox', 'quick');
+            }
+        }
+
+        // 文件上传测试
+        document.getElementById('testFile').addEventListener('change', (e) => {
+            testFile = e.target.files[0];
+            if (testFile) {
+                log('info', `文件选择: ${testFile.name}`, 'detail');
+                log('info', `大小: ${(testFile.size / 1024).toFixed(2)} KB`, 'detail');
+                log('info', `类型: ${testFile.type}`, 'detail');
+                
+                if (!testFile.type.startsWith('image/')) {
+                    log('error', '✗ 不是图片文件', 'detail');
+                } else {
+                    log('success', '✓ 文件格式正确', 'detail');
+                }
+            }
+        });
+
+        function testImageUpload() {
+            if (!testFile) {
+                log('error', '未选择文件，请先点击"选择图片测试"', 'detail');
+                return;
+            }
+
+            log('info', '开始文件读取测试...', 'detail');
+            const reader = new FileReader();
+
+            reader.onerror = (error) => {
+                log('error', `✗ FileReader 错误: ${error}`, 'detail');
+            };
+
+            reader.onload = (e) => {
+                log('success', '✓ FileReader 读取成功', 'detail');
+                log('info', `数据长度: ${e.target.result.length} 字符`, 'detail');
+
+                const img = new Image();
+                
+                img.onerror = () => {
+                    log('error', '✗ 图片加载失败 - 数据格式错误', 'detail');
+                };
+
+                img.onload = () => {
+                    log('success', '✓ 图片加载成功', 'detail');
+                    log('info', `尺寸: ${img.width}x${img.height} 像素`, 'detail');
+                    log('info', `面积: ${(img.width * img.height / 1000000).toFixed(2)} 百万像素`, 'detail');
+                };
+
+                img.src = e.target.result;
+            };
+
+            reader.readAsDataURL(testFile);
+        }
+
+        function testCanvasProcessing() {
+            if (!testFile) {
+                log('error', '未选择文件', 'detail');
+                return;
+            }
+
+            log('info', '开始 Canvas 处理测试...', 'detail');
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        log('success', '✓ Canvas 创建成功', 'detail');
+
+                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                        if (!ctx) throw new Error('无法获取 Context');
+                        log('success', '✓ Canvas Context 获取成功', 'detail');
+
+                        ctx.drawImage(img, 0, 0);
+                        log('success', '✓ 图片绘制到 Canvas', 'detail');
+
+                        const start = performance.now();
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const end = performance.now();
+                        log('success', `✓ getImageData 成功，耗时 ${(end - start).toFixed(0)}ms`, 'detail');
+                        log('info', `数据大小: ${(imageData.data.length / 1024 / 1024).toFixed(2)} MB`, 'detail');
+
+                        canvas.toBlob((blob) => {
+                            if (!blob) {
+                                log('error', '✗ toBlob 返回空', 'detail');
+                            } else {
+                                log('success', `✓ toBlob 成功，大小 ${(blob.size / 1024).toFixed(2)} KB`, 'detail');
+                            }
+                        });
+                    } catch (e) {
+                        log('error', `✗ Canvas 处理失败: ${e.message}`, 'detail');
+                    }
+                };
+                img.src = e.target.result;
+            };
+
+            reader.readAsDataURL(testFile);
+        }
+
+        function testColorParsing() {
+            log('info', '测试颜色解析...', 'detail');
+            const colors = ['#ffffff', '#2196F3', '#ff0000', '#000000', '#123abc'];
+
+            for (const hex of colors) {
+                try {
+                    const h = hex.replace('#', '');
+                    const r = parseInt(h.substring(0, 2), 16);
+                    const g = parseInt(h.substring(2, 4), 16);
+                    const b = parseInt(h.substring(4, 6), 16);
+
+                    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+                        log('error', `✗ ${hex} 解析失败 - NaN`, 'detail');
+                    } else {
+                        log('success', `✓ ${hex} = RGB(${r}, ${g}, ${b})`, 'detail');
+                    }
+                } catch (e) {
+                    log('error', `✗ ${hex} 异常: ${e.message}`, 'detail');
+                }
+            }
+        }
+
+        function testBlobCreation() {
+            log('info', '测试 Blob 创建...', 'detail');
+            
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 100;
+                canvas.height = 100;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = '#2196F3';
+                ctx.fillRect(0, 0, 100, 100);
+                log('success', '✓ 创建测试画布', 'detail');
+
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        log('error', '✗ toBlob 返回 null', 'detail');
+                    } else {
+                        log('success', `✓ Blob 创建成功: ${(blob.size / 1024).toFixed(2)} KB`, 'detail');
+                        
+                        const url = URL.createObjectURL(blob);
+                        log('success', `✓ 创建对象 URL: ${url.substring(0, 50)}...`, 'detail');
+                    }
+                }, 'image/png', 0.95);
+            } catch (e) {
+                log('error', `✗ Blob 测试失败: ${e.message}`, 'detail');
+            }
+        }
+
+        function testFullPipeline() {
+            if (!testFile) {
+                log('error', '未选择文件', 'pipeline');
+                return;
+            }
+
+            logs.pipeline = [];
+            log('info', '========== 完整处理流程开始 ==========', 'pipeline');
+
+            const reader = new FileReader();
+            let stepCount = 0;
+
+            reader.onerror = (err) => {
+                log('error', `✗ 步骤${++stepCount}: FileReader 错误 - ${err}`, 'pipeline');
+            };
+
+            reader.onload = (e) => {
+                log('success', `✓ 步骤${++stepCount}: FileReader 读取成功`, 'pipeline');
+
+                const img = new Image();
+                
+                img.onerror = () => {
+                    log('error', `✗ 步骤${++stepCount}: 图片加载失败`, 'pipeline');
+                };
+
+                img.onload = () => {
+                    log('success', `✓ 步骤${++stepCount}: 图片加载成功 (${img.width}x${img.height})`, 'pipeline');
+
+                    requestAnimationFrame(() => {
+                        try {
+                            const startTime = performance.now();
+                            
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            log('success', `✓ 步骤${++stepCount}: Canvas 创建成功`, 'pipeline');
+
+                            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                            if (!ctx) throw new Error('Context 为 null');
+                            log('success', `✓ 步骤${++stepCount}: 获取 Canvas Context`, 'pipeline');
+
+                            ctx.drawImage(img, 0, 0);
+                            log('success', `✓ 步骤${++stepCount}: 绘制图片到 Canvas`, 'pipeline');
+
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const data = imageData.data;
+                            log('success', `✓ 步骤${++stepCount}: 获取图像数据`, 'pipeline');
+
+                            // 模拟背景检测
+                            const corners = [
+                                { x: 0, y: 0 },
+                                { x: canvas.width - 1, y: 0 },
+                                { x: 0, y: canvas.height - 1 },
+                                { x: canvas.width - 1, y: canvas.height - 1 }
+                            ];
+                            let sumR = 0, sumG = 0, sumB = 0;
+                            for (const c of corners) {
+                                const idx = (c.y * canvas.width + c.x) * 4;
+                                sumR += data[idx];
+                                sumG += data[idx + 1];
+                                sumB += data[idx + 2];
+                            }
+                            const bgR = Math.round(sumR / 4);
+                            const bgG = Math.round(sumG / 4);
+                            const bgB = Math.round(sumB / 4);
+                            log('success', `✓ 步骤${++stepCount}: 检测背景色 RGB(${bgR}, ${bgG}, ${bgB})`, 'pipeline');
+
+                            // 颜色替换
+                            const targetR = 33, targetG = 150, targetB = 243;
+                            let replacedCount = 0;
+                            for (let i = 0; i < data.length; i += 4) {
+                                const diff = Math.sqrt(
+                                    (data[i] - bgR) ** 2 +
+                                    (data[i + 1] - bgG) ** 2 +
+                                    (data[i + 2] - bgB) ** 2
+                                );
+                                if (diff < 35) {
+                                    data[i] = targetR;
+                                    data[i + 1] = targetG;
+                                    data[i + 2] = targetB;
+                                    replacedCount++;
+                                }
+                            }
+                            log('success', `✓ 步骤${++stepCount}: 替换颜色 (${replacedCount} 像素)`, 'pipeline');
+
+                            ctx.putImageData(imageData, 0, 0);
+                            log('success', `✓ 步骤${++stepCount}: 写入处理后的数据`, 'pipeline');
+
+                            canvas.toBlob((blob) => {
+                                if (!blob) {
+                                    log('error', `✗ 步骤${++stepCount}: toBlob 返回空`, 'pipeline');
+                                    return;
+                                }
+                                log('success', `✓ 步骤${++stepCount}: 转换为 Blob (${(blob.size / 1024).toFixed(2)} KB)`, 'pipeline');
+
+                                const url = URL.createObjectURL(blob);
+                                log('success', `✓ 步骤${++stepCount}: 创建对象 URL`, 'pipeline');
+
+                                const endTime = performance.now();
+                                log('success', `✓ 步骤${++stepCount}: 处理完成，总耗时 ${(endTime - startTime).toFixed(0)}ms`, 'pipeline');
+
+                                log('info', '========== 处理流程成功 ==========', 'pipeline');
+                            }, 'image/png', 0.95);
+
+                        } catch (e) {
+                            log('error', `✗ 步骤${++stepCount}: ${e.message}`, 'pipeline');
+                            log('info', '========== 处理流程失败 ==========', 'pipeline');
+                        }
+                    });
+                };
+
+                img.src = e.target.result;
+            };
+
+            reader.readAsDataURL(testFile);
+        }
+
+        // 初始化
+        window.addEventListener('load', () => {
+            runQuickCheck();
+        });
+    </script>
+</body>
+</html>
