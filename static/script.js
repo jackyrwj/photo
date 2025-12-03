@@ -131,51 +131,96 @@ async function processColor(colorInfo) {
 }
 
 // 智能纯前端抠图处理 - 优化版本
-async function procesColorWithCanvas(colorInfo) {
+async function processColorWithCanvas(colorInfo) {
     return new Promise((resolve) => {
         try {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    // 使用 requestAnimationFrame 避免阻塞
-                    requestAnimationFrame(() => {
-                        const startTime = performance.now();
-                        
-                        // 创建 offscreen canvas
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-                        // 绘制原图
-                        ctx.drawImage(img, 0, 0);
-
-                        // 使用智能抠图算法
-                        smartBackgroundRemoval(ctx, canvas, colorInfo);
-
-                        // 转换为 Blob
-                        canvas.toBlob((blob) => {
-                            const url = URL.createObjectURL(blob);
-                            colorInfo.image.src = url;
-                            colorInfo.image.style.display = 'block';
-                            document.getElementById(colorInfo.loading).style.display = 'none';
-                            document.getElementById(colorInfo.btn).style.display = 'inline-block';
-
-                            // 保存用于下载
-                            const filename = `processed_${colorInfo.name}_${Date.now()}.png`;
-                            outputFilenames[colorInfo.name] = filename;
-                            window[`blob_${colorInfo.name}`] = blob;
-
-                            const endTime = performance.now();
-                            console.log(`${colorInfo.name} 处理完成，耗时 ${(endTime - startTime).toFixed(0)}ms`);
-                            
-                            resolve();
-                        }, 'image/png', 0.95);
-                    });
-                };
-                img.src = e.target.result;
+            
+            reader.onerror = (error) => {
+                console.error(`FileReader 读取失败 (${colorInfo.name}):`, error);
+                document.getElementById(colorInfo.loading).textContent = '读取失败';
+                resolve();
             };
+            
+            reader.onload = (e) => {
+                try {
+                    const img = new Image();
+                    
+                    img.onerror = () => {
+                        console.error(`图片加载失败 (${colorInfo.name})`);
+                        document.getElementById(colorInfo.loading).textContent = '加载失败';
+                        resolve();
+                    };
+                    
+                    img.onload = () => {
+                        try {
+                            // 使用 requestAnimationFrame 避免阻塞
+                            requestAnimationFrame(() => {
+                                try {
+                                    const startTime = performance.now();
+                                    
+                                    // 创建 offscreen canvas
+                                    const canvas = document.createElement('canvas');
+                                    canvas.width = img.width;
+                                    canvas.height = img.height;
+                                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+                                    if (!ctx) {
+                                        throw new Error('无法获取 Canvas Context');
+                                    }
+
+                                    // 绘制原图
+                                    ctx.drawImage(img, 0, 0);
+
+                                    // 使用智能抠图算法
+                                    smartBackgroundRemoval(ctx, canvas, colorInfo);
+
+                                    // 转换为 Blob
+                                    canvas.toBlob((blob) => {
+                                        if (!blob) {
+                                            console.error(`toBlob 返回空 (${colorInfo.name})`);
+                                            document.getElementById(colorInfo.loading).textContent = '转换失败';
+                                            resolve();
+                                            return;
+                                        }
+
+                                        const url = URL.createObjectURL(blob);
+                                        colorInfo.image.src = url;
+                                        colorInfo.image.style.display = 'block';
+                                        document.getElementById(colorInfo.loading).style.display = 'none';
+                                        document.getElementById(colorInfo.btn).style.display = 'inline-block';
+
+                                        // 保存用于下载
+                                        const filename = `processed_${colorInfo.name}_${Date.now()}.png`;
+                                        outputFilenames[colorInfo.name] = filename;
+                                        window[`blob_${colorInfo.name}`] = blob;
+
+                                        const endTime = performance.now();
+                                        console.log(`${colorInfo.name} 处理完成，耗时 ${(endTime - startTime).toFixed(0)}ms`);
+                                        
+                                        resolve();
+                                    }, 'image/png', 0.95);
+                                } catch (innerError) {
+                                    console.error(`Canvas 处理出错 (${colorInfo.name}):`, innerError);
+                                    document.getElementById(colorInfo.loading).textContent = '处理失败';
+                                    resolve();
+                                }
+                            });
+                        } catch (error) {
+                            console.error(`图片加载后处理出错 (${colorInfo.name}):`, error);
+                            document.getElementById(colorInfo.loading).textContent = '处理失败';
+                            resolve();
+                        }
+                    };
+                    
+                    img.src = e.target.result;
+                } catch (error) {
+                    console.error(`Image 对象创建出错 (${colorInfo.name}):`, error);
+                    document.getElementById(colorInfo.loading).textContent = '创建失败';
+                    resolve();
+                }
+            };
+            
             reader.readAsDataURL(selectedFile);
         } catch (error) {
             console.error('前端处理失败：', error);
@@ -390,44 +435,90 @@ async function processCustomColorWithCanvas() {
     return new Promise((resolve) => {
         try {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    requestAnimationFrame(() => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-                        ctx.drawImage(img, 0, 0);
-
-                        // 构建颜色信息对象
-                        const colorInfo = {
-                            name: 'custom',
-                            hex: selectedColor,
-                            image: customResultImage,
-                            loading: 'customLoading',
-                            btn: 'downloadCustom'
-                        };
-
-                        smartBackgroundRemoval(ctx, canvas, colorInfo);
-
-                        canvas.toBlob((blob) => {
-                            const url = URL.createObjectURL(blob);
-                            customOriginalImage.src = originalImage.src;
-                            customResultImage.src = url;
-                            customResultSection.style.display = 'block';
-                            customResultSection.scrollIntoView({ behavior: 'smooth' });
-
-                            outputFilenames.custom = `processed_custom_${Date.now()}.png`;
-                            window['blob_custom'] = blob;
-
-                            resolve();
-                        }, 'image/png', 0.95);
-                    });
-                };
-                img.src = e.target.result;
+            
+            reader.onerror = (error) => {
+                console.error('FileReader 读取失败 (custom):', error);
+                alert('文件读取失败');
+                resolve();
             };
+            
+            reader.onload = (e) => {
+                try {
+                    const img = new Image();
+                    
+                    img.onerror = () => {
+                        console.error('图片加载失败 (custom)');
+                        alert('图片加载失败');
+                        resolve();
+                    };
+                    
+                    img.onload = () => {
+                        try {
+                            requestAnimationFrame(() => {
+                                try {
+                                    const canvas = document.createElement('canvas');
+                                    canvas.width = img.width;
+                                    canvas.height = img.height;
+                                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+                                    if (!ctx) {
+                                        throw new Error('无法获取 Canvas Context');
+                                    }
+
+                                    ctx.drawImage(img, 0, 0);
+
+                                    // 构建颜色信息对象
+                                    const colorInfo = {
+                                        name: 'custom',
+                                        hex: selectedColor,
+                                        image: customResultImage,
+                                        loading: 'customLoading',
+                                        btn: 'downloadCustom'
+                                    };
+
+                                    smartBackgroundRemoval(ctx, canvas, colorInfo);
+
+                                    canvas.toBlob((blob) => {
+                                        if (!blob) {
+                                            console.error('toBlob 返回空 (custom)');
+                                            alert('图像转换失败');
+                                            resolve();
+                                            return;
+                                        }
+
+                                        const url = URL.createObjectURL(blob);
+                                        customOriginalImage.src = originalImage.src;
+                                        customResultImage.src = url;
+                                        customResultSection.style.display = 'block';
+                                        customResultSection.scrollIntoView({ behavior: 'smooth' });
+
+                                        outputFilenames.custom = `processed_custom_${Date.now()}.png`;
+                                        window['blob_custom'] = blob;
+
+                                        console.log('自定义颜色处理完成');
+                                        resolve();
+                                    }, 'image/png', 0.95);
+                                } catch (innerError) {
+                                    console.error('Canvas 处理出错 (custom):', innerError);
+                                    alert('处理失败: ' + innerError.message);
+                                    resolve();
+                                }
+                            });
+                        } catch (error) {
+                            console.error('图片加载后处理出错 (custom):', error);
+                            alert('处理失败: ' + error.message);
+                            resolve();
+                        }
+                    };
+                    
+                    img.src = e.target.result;
+                } catch (error) {
+                    console.error('Image 对象创建出错 (custom):', error);
+                    alert('创建图片对象失败');
+                    resolve();
+                }
+            };
+            
             reader.readAsDataURL(selectedFile);
         } catch (error) {
             console.error('前端处理失败：', error);
