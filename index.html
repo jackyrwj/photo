@@ -1123,201 +1123,65 @@
         });
       }
 
-      // 纯前端处理配置 - 不依赖服务器
-      const RENDER_API_URL = 'https://photo-wcqh.onrender.com'; // 备用
-      const USE_FRONTEND_ONLY = true;
+      // Render Flask 后端 API
+      const RENDER_API_URL = 'https://photo-wcqh.onrender.com';
 
-      // 纯前端处理所有颜色
+      // 处理所有颜色 - 使用 Render 后端
       async function processAllColors() {
         loading.style.display = "flex";
 
         // 显示原图
         document.getElementById("originalImage").src = uploadedImage.src;
 
-        // 直接使用纯前端处理
-        await processColor("#ffffff", "white");
-        await processColor("#2196F3", "blue");
-        await processColor("#ff0000", "red");
+        try {
+          // 并行处理三种颜色
+          await Promise.all([
+            processColor("#ffffff", "white"),
+            processColor("#438edb", "blue"),
+            processColor("#ff0000", "red")
+          ]);
 
-        // 显示结果
-        document.getElementById("whiteImage").src = processedImages.white;
-        document.getElementById("blueImage").src = processedImages.blue;
-        document.getElementById("redImage").src = processedImages.red;
+          // 显示结果
+          document.getElementById("whiteImage").src = processedImages.white;
+          document.getElementById("blueImage").src = processedImages.blue;
+          document.getElementById("redImage").src = processedImages.red;
 
-        resultSection.style.display = "block";
+          resultSection.style.display = "block";
+        } catch (error) {
+          console.error("处理失败:", error);
+          alert("处理失败，请重试");
+        }
+
         loading.style.display = "none";
 
         // 滚动到结果区域
         resultSection.scrollIntoView({ behavior: "smooth" });
       }
 
-      // 处理单个颜色 - 纯前端智能算法
+      // 处理单个颜色 - 调用 Render 后端 API
       async function processColor(hexColor, colorName) {
-        return new Promise((resolve) => {
-          requestAnimationFrame(() => {
-            try {
-              // 创建 canvas
-              const canvas = document.createElement('canvas');
-              canvas.width = uploadedImage.width;
-              canvas.height = uploadedImage.height;
-              const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        // 将图片转为 Blob
+        const response = await fetch(uploadedImage.src);
+        const blob = await response.blob();
 
-              // 绘制原图
-              ctx.drawImage(uploadedImage, 0, 0);
+        // 创建 FormData
+        const formData = new FormData();
+        formData.append("file", blob, "image.png");
+        formData.append("color", hexColor);
 
-              // 智能抠图处理
-              const colorInfo = {
-                name: colorName,
-                hex: hexColor
-              };
-              smartRemoveBackground(ctx, canvas.width, canvas.height, hexColor);
-
-              // 保存结果
-              processedImages[colorName] = canvas.toDataURL('image/png');
-
-              resolve();
-            } catch (error) {
-              console.error(`处理 ${colorName} 失败:`, error);
-              resolve();
-            }
-          });
+        // 调用 Render API
+        const apiResponse = await fetch(`${RENDER_API_URL}/upload`, {
+          method: "POST",
+          body: formData,
         });
-      }
 
-      // 智能背景移除算法
-      function smartRemoveBackground(ctx, width, height, targetHexColor) {
-        const imageData = ctx.getImageData(0, 0, width, height);
-        const data = imageData.data;
-
-        // 解析目标颜色 - 改进的方式
-        const hexColor = targetHexColor.replace('#', '');
-        const targetR = parseInt(hexColor.substring(0, 2), 16);
-        const targetG = parseInt(hexColor.substring(2, 4), 16);
-        const targetB = parseInt(hexColor.substring(4, 6), 16);
-
-        // 检测背景色（从四个角）
-        const bgColor = detectBgColor(data, width, height);
-
-        // 颜色替换和边缘优化
-        const tolerance = 35;
-        const edgeBuffer = new Uint8Array(data.length / 4);
-
-        for (let i = 0; i < data.length; i += 4) {
-          const pixelR = data[i];
-          const pixelG = data[i + 1];
-          const pixelB = data[i + 2];
-          const pixelA = data[i + 3];
-
-          // 计算颜色距离
-          const diff = colorDist(
-            pixelR, pixelG, pixelB,
-            bgColor.r, bgColor.g, bgColor.b
-          );
-
-          const pixelIndex = i / 4;
-
-          if (diff < tolerance) {
-            // 背景：替换颜色
-            data[i] = targetR;
-            data[i + 1] = targetG;
-            data[i + 2] = targetB;
-            data[i + 3] = 255;
-            edgeBuffer[pixelIndex] = 0;
-          } else if (diff < tolerance + 30) {
-            // 边缘：混合
-            const alpha = Math.max(0, (diff - tolerance) / 30);
-            data[i] = Math.round(pixelR * alpha + targetR * (1 - alpha));
-            data[i + 1] = Math.round(pixelG * alpha + targetG * (1 - alpha));
-            data[i + 2] = Math.round(pixelB * alpha + targetB * (1 - alpha));
-            data[i + 3] = Math.round(pixelA * alpha + 255 * (1 - alpha));
-            edgeBuffer[pixelIndex] = 1;
-          } else {
-            // 前景：保持
-            edgeBuffer[pixelIndex] = 2;
-          }
+        if (!apiResponse.ok) {
+          throw new Error(`API 错误: ${apiResponse.status}`);
         }
 
-        // 平滑边界
-        smoothBoundary(data, edgeBuffer, width, height);
-
-        ctx.putImageData(imageData, 0, 0);
-      }
-
-      // 检测背景色
-      function detectBgColor(data, width, height) {
-        const corners = [
-          { x: 0, y: 0 },
-          { x: width - 1, y: 0 },
-          { x: 0, y: height - 1 },
-          { x: width - 1, y: height - 1 }
-        ];
-
-        let sumR = 0, sumG = 0, sumB = 0;
-
-        for (const corner of corners) {
-          const idx = (corner.y * width + corner.x) * 4;
-          sumR += data[idx];
-          sumG += data[idx + 1];
-          sumB += data[idx + 2];
-        }
-
-        return {
-          r: Math.round(sumR / corners.length),
-          g: Math.round(sumG / corners.length),
-          b: Math.round(sumB / corners.length)
-        };
-      }
-
-      // 颜色距离计算（加权）
-      function colorDist(r1, g1, b1, r2, g2, b2) {
-        const dR = (r1 - r2) * 0.3;
-        const dG = (g1 - g2) * 0.59;
-        const dB = (b1 - b2) * 0.11;
-        return Math.sqrt(dR * dR + dG * dG + dB * dB);
-      }
-
-      // 边界平滑
-      function smoothBoundary(data, edgeBuffer, width, height) {
-        const radius = 1;
-        const kernel = [1, 2, 1, 2, 4, 2, 1, 2, 1];
-        const kernelWeight = 16;
-
-        for (let i = 0; i < edgeBuffer.length; i++) {
-          if (edgeBuffer[i] !== 1) continue;
-
-          const y = Math.floor(i / width);
-          const x = i % width;
-
-          let sumR = 0, sumG = 0, sumB = 0, sumA = 0, count = 0;
-          let kernelIdx = 0;
-
-          for (let dy = -radius; dy <= radius; dy++) {
-            for (let dx = -radius; dx <= radius; dx++) {
-              const ny = y + dy;
-              const nx = x + dx;
-
-              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                const idx = (ny * width + nx) * 4;
-                const weight = kernel[kernelIdx];
-
-                sumR += data[idx] * weight;
-                sumG += data[idx + 1] * weight;
-                sumB += data[idx + 2] * weight;
-                sumA += data[idx + 3] * weight;
-                count += weight;
-              }
-              kernelIdx++;
-            }
-          }
-
-          const pixelIdx = i * 4;
-          data[pixelIdx] = Math.round(sumR / count);
-          data[pixelIdx + 1] = Math.round(sumG / count);
-          data[pixelIdx + 2] = Math.round(sumB / count);
-          data[pixelIdx + 3] = Math.round(sumA / count);
-        }
-      }
-        });
+        // 获取处理后的图片
+        const resultBlob = await apiResponse.blob();
+        processedImages[colorName] = URL.createObjectURL(resultBlob);
       }
 
       // 十六进制颜色转 RGB
