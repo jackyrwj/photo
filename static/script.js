@@ -1,5 +1,5 @@
-// 使用 Render 后端
-const API_URL = 'https://photo-wcqh.onrender.com';
+// API 地址（空字符串表示使用当前服务器）
+const API_URL = '';
 
 let selectedFile = null;
 let selectedColor = '#ff0000';
