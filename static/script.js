@@ -1,5 +1,5 @@
-// 使用 Cloudflare Worker 代理到 EC2 服务器
-const API_URL = 'https://restless-brook-03d5.raowenjieszu.workers.dev';
+// 使用 Cloudflare 代理到 EC2 服务器
+const API_URL = 'https://api.huandise.top';
 
 let selectedFile = null;
 let selectedColor = '#ff0000';
