@@ -107,7 +107,8 @@ with gr.Blocks(title="证件照换底色工具") as demo:
     submit_btn.click(
         fn=process_image,
         inputs=[input_image, color_choice],
-        outputs=[output_white, output_blue, output_red]
+        outputs=[output_white, output_blue, output_red],
+        api_name="predict"  # 添加 API 名称，供 JavaScript 调用
     )
     
     gr.Markdown("""

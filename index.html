@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>换底色 - 在线证件照换底色工具</title>
+
+    <!-- Google AdSense -->
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7451090615788854"
+      crossorigin="anonymous"
+    ></script>
     <meta
       name="description"
       content="免费在线证件照换底色工具，支持白底、蓝底、红底等多种颜色，智能抠图，效果专业。"
@@ -773,12 +780,14 @@
             </div>
             <div class="custom-color">
               <label for="colorPicker">自定义颜色：</label>
-              <input type="color" id="colorPicker" value="#ff0000">
+              <input type="color" id="colorPicker" value="#ff0000" />
             </div>
           </div>
 
           <div class="action-section">
-            <button id="processBtn" class="btn-primary" disabled>开始处理</button>
+            <button id="processBtn" class="btn-primary" disabled>
+              开始处理
+            </button>
           </div>
         </div>
       </div>
@@ -792,60 +801,83 @@
           </div>
           <div class="image-container">
             <h3>白底</h3>
-            <img id="whiteImage" alt="白底" style="display: none;" />
+            <img id="whiteImage" alt="白底" style="display: none" />
             <div class="loading-placeholder" id="whiteLoading">处理中...</div>
           </div>
           <div class="image-container">
             <h3>蓝底</h3>
-            <img id="blueImage" alt="蓝底" style="display: none;" />
+            <img id="blueImage" alt="蓝底" style="display: none" />
             <div class="loading-placeholder" id="blueLoading">处理中...</div>
           </div>
           <div class="image-container">
             <h3>红底</h3>
-            <img id="redImage" alt="红底" style="display: none;" />
+            <img id="redImage" alt="红底" style="display: none" />
             <div class="loading-placeholder" id="redLoading">处理中...</div>
           </div>
         </div>
         <div class="download-buttons">
-          <button class="btn-download" id="downloadWhite" style="display: none;">下载白底</button>
-          <button class="btn-download" id="downloadBlue" style="display: none;">下载蓝底</button>
-          <button class="btn-download" id="downloadRed" style="display: none;">下载红底</button>
+          <button class="btn-download" id="downloadWhite" style="display: none">
+            下载白底
+          </button>
+          <button class="btn-download" id="downloadBlue" style="display: none">
+            下载蓝底
+          </button>
+          <button class="btn-download" id="downloadRed" style="display: none">
+            下载红底
+          </button>
         </div>
       </div>
 
       <!-- 自定义颜色结果 -->
-      <div class="custom-result-section" id="customResultSection" style="display: none;">
+      <div
+        class="custom-result-section"
+        id="customResultSection"
+        style="display: none"
+      >
         <h2>自定义颜色结果</h2>
         <div class="result-images">
           <div class="image-container">
             <h3>原图</h3>
-            <img id="customOriginalImage" alt="原图">
+            <img id="customOriginalImage" alt="原图" />
           </div>
           <div class="image-container">
             <h3>处理后</h3>
-            <img id="customResultImage" alt="处理后">
+            <img id="customResultImage" alt="处理后" />
           </div>
         </div>
         <button id="downloadCustom" class="btn-success">下载图片</button>
       </div>
 
       <div class="tips">
-        <p class="tip-title">证件照限时免费中。AI智能一键制作证件照&换底色。更多格式可选。更智能快捷。欢迎免费试用。</p>
-        <p>证件照在线换底色工具支持一键智能证件照背景色，一键智能抠图换底，智能方便。提供已抠版PNG图像下载，方便自行合成底。</p>
-        <p>请直接将现有证件照拖入上图像区中，工具将会自动为您智能抠图替换底色，您可以自行切换任意背景色。</p>
-        <p><strong>如点击图像或下载按钮无法自动下载，请右击键或长按证件照像保存即可。</strong></p>
+        <p class="tip-title">
+          证件照限时免费中。AI智能一键制作证件照&换底色。更多格式可选。更智能快捷。欢迎免费试用。
+        </p>
+        <p>
+          证件照在线换底色工具支持一键智能证件照背景色，一键智能抠图换底，智能方便。提供已抠版PNG图像下载，方便自行合成底。
+        </p>
+        <p>
+          请直接将现有证件照拖入上图像区中，工具将会自动为您智能抠图替换底色，您可以自行切换任意背景色。
+        </p>
+        <p>
+          <strong
+            >如点击图像或下载按钮无法自动下载，请右击键或长按证件照像保存即可。</strong
+          >
+        </p>
       </div>
 
       <div class="footer">
         <p>
           ❤️ 开源项目 ·
-          <a href="https://github.com/jackyrwj/photo" target="_blank" rel="noopener noreferrer">GitHub</a> ·
-          免费使用 · 欢迎 Star ⭐
+          <a
+            href="https://github.com/jackyrwj/photo"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          >
+          · 免费使用 · 欢迎 Star ⭐
         </p>
         <div class="tech-stack">
-          <span>Python</span>·
-          <span>Flask</span>·
-          <span>OpenCV</span>·
+          <span>Python</span>· <span>Flask</span>· <span>OpenCV</span>·
           <span>智能抠图</span>
         </div>
         <p style="margin-top: 10px; font-size: 12px">
@@ -854,7 +886,7 @@
         </p>
       </div>
 
-      <div class="loading" id="loading" style="display: none;">
+      <div class="loading" id="loading" style="display: none">
         <div class="spinner"></div>
         <p>处理中，请稍候...</p>
       </div>
@@ -885,7 +917,9 @@
       const fileInput = document.getElementById("fileInput");
       const loading = document.getElementById("loading");
       const resultSection = document.getElementById("resultSection");
-      const customResultSection = document.getElementById("customResultSection");
+      const customResultSection = document.getElementById(
+        "customResultSection"
+      );
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d");
       const processBtn = document.getElementById("processBtn");
@@ -937,7 +971,9 @@
           colorPicker.value = color;
 
           // 更新选中状态
-          document.querySelectorAll(".color-box").forEach((b) => b.classList.remove("selected"));
+          document
+            .querySelectorAll(".color-box")
+            .forEach((b) => b.classList.remove("selected"));
           box.classList.add("selected");
 
           // 如果是白/蓝/红且已上传图片，自动处理
@@ -1124,7 +1160,7 @@
       }
 
       // Cloudflare 代理到 EC2 服务器
-      const RENDER_API_URL = 'https://huandise.top';
+      const RENDER_API_URL = "https://huandise.top";
 
       // 处理所有颜色 - 使用 Render 后端
       async function processAllColors() {
@@ -1138,7 +1174,7 @@
           await Promise.all([
             processColor("#ffffff", "white"),
             processColor("#438edb", "blue"),
-            processColor("#ff0000", "red")
+            processColor("#ff0000", "red"),
           ]);
 
           // 显示结果
@@ -1217,14 +1253,20 @@
       }
 
       // 初始化时检查系统
-      window.addEventListener('load', () => {
-        console.log('=== 系统初始化检查 ===');
-        console.log('Canvas 支持:', !!document.createElement('canvas').getContext('2d'));
-        console.log('FileReader 支持:', typeof FileReader !== 'undefined');
-        console.log('requestAnimationFrame:', typeof requestAnimationFrame !== 'undefined');
-        console.log('上传区元素:', !!uploadedImage);
-        console.log('Canvas 元素:', !!canvas);
-        console.log('=== 初始化完成 ===');
+      window.addEventListener("load", () => {
+        console.log("=== 系统初始化检查 ===");
+        console.log(
+          "Canvas 支持:",
+          !!document.createElement("canvas").getContext("2d")
+        );
+        console.log("FileReader 支持:", typeof FileReader !== "undefined");
+        console.log(
+          "requestAnimationFrame:",
+          typeof requestAnimationFrame !== "undefined"
+        );
+        console.log("上传区元素:", !!uploadedImage);
+        console.log("Canvas 元素:", !!canvas);
+        console.log("=== 初始化完成 ===");
       });
     </script>
   </body>
